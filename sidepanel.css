@@ -152,14 +152,19 @@ body::after {
 }
 
 .video-meta-author {
+  padding: 0;
+  border: none;
+  background: none;
   font-family: var(--font-body);
+  font-size: 11px;
   color: var(--ink-3);
-  text-decoration: none;
+  cursor: default;
 }
 
-a.video-meta-author:hover {
+.video-meta-author:hover {
   color: var(--accent-strong);
   text-decoration: underline;
+  cursor: pointer;
 }
 
 .video-meta-sep {

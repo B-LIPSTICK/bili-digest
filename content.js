@@ -66,15 +66,20 @@ function getVideoContext() {
     document.title.replace(/[_\-—].*哔哩哔哩.*$/, "").trim() ||
     "";
 
+  const authorElement =
+    document.querySelector(".up-name") ||
+    document.querySelector(".up-info .name");
   const author =
-    document.querySelector(".up-name")?.textContent?.trim() ||
-    document.querySelector(".up-info .name")?.textContent?.trim() ||
+    (authorElement?.textContent || "").trim() ||
     videoData?.owner?.name ||
     "";
   const authorMid =
     Number(videoData?.owner?.mid) ||
     Number(window.__INITIAL_STATE__?.upInfo?.mid) ||
     Number(window.__INITIAL_STATE__?.upData?.mid) ||
+    Number(
+      authorElement?.closest("a")?.href?.match(/space\.bilibili\.com\/(\d+)/)?.[1],
+    ) ||
     0;
 
   return {

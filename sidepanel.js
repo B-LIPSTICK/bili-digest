@@ -183,16 +183,19 @@ function updateHeader() {
 
   videoMetaEl.replaceChildren();
   if (state.video.author) {
-    const author = document.createElement(
-      state.video.authorMid ? "a" : "span",
-    );
+    const author = document.createElement("button");
     author.className = "video-meta-author";
+    author.type = "button";
     author.textContent = state.video.author;
     if (state.video.authorMid) {
-      author.href = `https://space.bilibili.com/${state.video.authorMid}`;
-      author.target = "_blank";
-      author.rel = "noopener noreferrer";
       author.title = "打开作者主页";
+      author.addEventListener("click", () => {
+        chrome.tabs
+          .create({
+            url: `https://space.bilibili.com/${state.video.authorMid}`,
+          })
+          .catch(() => {});
+      });
     }
     videoMetaEl.appendChild(author);
   }
