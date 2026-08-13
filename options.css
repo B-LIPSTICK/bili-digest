@@ -1,17 +1,20 @@
 :root {
-  --bg: #f5f3ee;
-  --surface: #ffffff;
-  --border: #e7e2d8;
-  --border-strong: #d8d1c4;
-  --text: #24221d;
-  --text-secondary: #63605a;
-  --muted: #98928a;
-  --accent: #3d7395;
-  --accent-hover: #2f5f7d;
-  --danger: #b8543f;
-  --ok: #4f7d4d;
-  --font-body: system-ui, -apple-system, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --paper: #f3efe6;
+  --surface: #fbf8f1;
+  --surface-2: #f6f1e7;
+  --ink: #211f1a;
+  --ink-2: #6c675c;
+  --ink-3: #a09a8c;
+  --line: #ddd6c6;
+  --line-strong: #b9b09d;
+  --accent: #b6422c;
+  --accent-strong: #96321f;
+  --ok: #4e6e4e;
+  --danger: #b6422c;
+  --font-display: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "SF Mono", Consolas, ui-monospace, monospace;
 }
 
 * {
@@ -21,12 +24,22 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
 }
 
 .wrap {
@@ -44,30 +57,31 @@ body {
 
 .page-head h1 {
   margin: 0;
-  font-size: 21px;
+  font-family: var(--font-display);
+  font-size: 22px;
   font-weight: 600;
 }
 
 .brand-mark {
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
+  width: 10px;
+  height: 10px;
   background: var(--accent);
 }
 
 .group {
   margin-bottom: 24px;
   padding: 18px 20px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
   background: var(--surface);
 }
 
 .group h2 {
   margin: 0 0 13px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -75,7 +89,7 @@ body {
   display: block;
   margin-bottom: 5px;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 input + .field-label,
@@ -94,10 +108,10 @@ input[type="text"],
 select {
   width: 100%;
   padding: 8px 11px;
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
@@ -111,10 +125,10 @@ select:focus {
 .icon-btn {
   width: 38px;
   flex: 0 0 38px;
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--surface);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   cursor: pointer;
 }
 
@@ -128,37 +142,42 @@ select:focus {
 .primary-btn {
   padding: 8px 20px;
   border: none;
-  border-radius: 7px;
-  background: var(--accent);
-  color: #fff;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--surface);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
 }
 
 .primary-btn:hover {
-  background: var(--accent-hover);
+  background: var(--accent-strong);
 }
 
 .ghost-btn {
   padding: 7px 15px;
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--surface);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: 12px;
   cursor: pointer;
+}
+
+.ghost-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .hint {
   margin: 9px 0 0;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   line-height: 1.65;
 }
 
 .hint.dim {
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .hint.ok {

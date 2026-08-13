@@ -21,6 +21,7 @@
       <button class="tab active" data-tab="transcript" role="tab">字幕</button>
       <button class="tab" data-tab="overview" role="tab">概览</button>
       <button class="tab" data-tab="notes" role="tab">笔记</button>
+      <button class="tab" data-tab="chat" role="tab">对话</button>
       <button class="tab" data-tab="settings" role="tab">设置</button>
     </nav>
 
@@ -72,6 +73,29 @@
         </div>
         <div id="notesStatus" class="status-line"></div>
         <div id="notesList" class="notes"></div>
+      </section>
+
+      <section id="tab-chat" class="panel">
+        <div class="panel-toolbar">
+          <span class="chat-title">视频问答</span>
+          <div class="toolbar-actions">
+            <button id="exportChatBtn" class="ghost-btn">导出对话</button>
+            <button id="clearChatBtn" class="icon-btn" title="清空对话" aria-label="清空对话">✕</button>
+          </div>
+        </div>
+        <div id="chatStatus" class="status-line"></div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-composer">
+          <textarea
+            id="chatInput"
+            rows="2"
+            placeholder="基于这段视频的字幕，问我任何问题…"
+            spellcheck="false"
+          ></textarea>
+          <div class="chat-composer-row">
+            <button id="sendChatBtn" class="primary-btn">发送</button>
+          </div>
+        </div>
       </section>
 
       <section id="tab-settings" class="panel">

@@ -32,6 +32,7 @@ const REQUIRED_FILES = [
   "prompts/explain.md",
   "prompts/polish.md",
   "prompts/note-capture.md",
+  "prompts/chat.md",
   "icons/icon16.png",
   "icons/icon48.png",
   "icons/icon128.png",

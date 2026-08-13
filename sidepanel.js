@@ -7,7 +7,7 @@
  * 所有数据请求都通过后台服务（background.js）统一处理。
  */
 
-import { buildMarkdown } from "./lib/export.js";
+import { buildMarkdown, buildChatMarkdown } from "./lib/export.js";
 
 const state = {
   video: null,
@@ -27,6 +27,9 @@ const state = {
   notes: [],
   notesScope: "current",
   noteSeconds: 0,
+  chatMessages: [],
+  chatLoaded: false,
+  chatSending: false,
   currentTab: "transcript",
 };
 
@@ -71,6 +74,12 @@ const explainSheetEl = $("explainSheet");
 const explainOriginalEl = $("explainOriginal");
 const explainResultEl = $("explainResult");
 const closeExplainBtn = $("closeExplainBtn");
+const exportChatBtn = $("exportChatBtn");
+const clearChatBtn = $("clearChatBtn");
+const chatStatusEl = $("chatStatus");
+const chatMessagesEl = $("chatMessages");
+const chatInput = $("chatInput");
+const sendChatBtn = $("sendChatBtn");
 
 // ============================================================
 // 工具函数
@@ -193,6 +202,8 @@ async function detectVideo() {
       state.translations = [];
       state.overview = null;
       state.notes = [];
+      state.chatMessages = [];
+      state.chatLoaded = false;
       updateHeader();
       await loadTranscript();
     } else {
@@ -820,6 +831,208 @@ async function polishCurrentNote() {
 }
 
 // ============================================================
+// 对话
+// ============================================================
+
+function chatKey(videoId, cid) {
+  return `chat:${videoId}:${cid}`;
+}
+
+async function loadChat() {
+  if (!state.video?.bvid) {
+    state.chatMessages = [];
+    renderChat();
+    state.chatLoaded = true;
+    return;
+  }
+  const key = chatKey(state.video.bvid, state.video.cid);
+  try {
+    const result = await chrome.storage.local.get(key);
+    const saved = result[key];
+    state.chatMessages = Array.isArray(saved) ? saved : [];
+  } catch {
+    state.chatMessages = [];
+  }
+  renderChat();
+  state.chatLoaded = true;
+}
+
+function renderChat() {
+  chatMessagesEl.replaceChildren();
+  if (!state.chatMessages.length) {
+    renderEmpty(chatMessagesEl, "💬", [
+      "就当前视频的字幕问我问题",
+      "回答只依据字幕内容，不会编造",
+    ]);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  state.chatMessages.forEach((message, index) => {
+    const isUser = message.role === "user";
+    const wrapper = document.createElement("div");
+    wrapper.className = `chat-msg ${isUser ? "user" : "ai"}`;
+    wrapper.innerHTML = `
+      <span class="chat-msg-head">${isUser ? "你" : "AI"}</span>
+      <div class="chat-msg-text">${escapeHtml(message.content)}</div>
+    `;
+    const isPending =
+      !isUser &&
+      index === state.chatMessages.length - 1 &&
+      state.chatSending &&
+      !message.content;
+    if (isPending) {
+      wrapper.classList.add("typing");
+      wrapper.querySelector(".chat-msg-text").textContent = "正在思考…";
+    }
+    fragment.appendChild(wrapper);
+  });
+  chatMessagesEl.appendChild(fragment);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function appendChatDelta(delta) {
+  let last = state.chatMessages[state.chatMessages.length - 1];
+  if (!last || last.role === "user") {
+    last = { role: "assistant", content: "" };
+    state.chatMessages.push(last);
+  }
+  last.content += delta;
+
+  const nodes = chatMessagesEl.querySelectorAll(".chat-msg");
+  const textEl = nodes[nodes.length - 1]?.querySelector(".chat-msg-text");
+  if (textEl) {
+    textEl.textContent = last.content;
+  }
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function finishChat(key, port) {
+  state.chatSending = false;
+  sendChatBtn.disabled = false;
+  try {
+    port.disconnect();
+  } catch {
+    // 端口可能已经断开
+  }
+  chrome.storage.local.set({ [key]: state.chatMessages }).catch(() => {});
+  renderChat();
+}
+
+async function sendChat() {
+  const text = chatInput.value.trim();
+  if (!text || state.chatSending) return;
+  if (!state.video?.bvid) {
+    showToast("先打开一个 B站视频", "error");
+    return;
+  }
+
+  state.chatSending = true;
+  sendChatBtn.disabled = true;
+  state.chatMessages.push({ role: "user", content: text });
+  state.chatMessages.push({ role: "assistant", content: "" });
+  renderChat();
+  chatInput.value = "";
+
+  const key = chatKey(state.video.bvid, state.video.cid);
+  const history = state.chatMessages.filter((message) => message.content);
+  const port = chrome.runtime.connect({ name: "chat" });
+  let received = "";
+
+  port.onMessage.addListener((message) => {
+    if (message.type === "delta") {
+      received += message.delta;
+      appendChatDelta(message.delta);
+    } else if (message.type === "done") {
+      finishChat(key, port);
+    } else if (message.type === "error") {
+      const last = state.chatMessages[state.chatMessages.length - 1];
+      if (!last || last.role === "user") {
+        state.chatMessages.push({ role: "assistant", content: "" });
+      }
+      state.chatMessages[state.chatMessages.length - 1].content =
+        `回答失败：${message.error}`;
+      finishChat(key, port);
+    }
+  });
+
+  port.onDisconnect.addListener(() => {
+    if (!received && state.chatSending) {
+      const last = state.chatMessages[state.chatMessages.length - 1];
+      if (last && last.role === "assistant" && !last.content) {
+        last.content = "连接中断，请重试";
+      }
+      finishChat(key, port);
+    }
+  });
+
+  try {
+    port.postMessage({
+      action: "chatAsk",
+      bvid: state.video.bvid,
+      cid: state.video.cid,
+      aid: state.video.aid,
+      messages: history,
+    });
+  } catch (error) {
+    const last = state.chatMessages[state.chatMessages.length - 1];
+    if (last && last.role === "assistant" && !last.content) {
+      last.content = `发送失败：${error.message}`;
+    }
+    finishChat(key, port);
+  }
+}
+
+async function clearChat() {
+  if (!state.video?.bvid) return;
+  let confirmed = true;
+  try {
+    confirmed = window.confirm("清空当前视频的对话记录？");
+  } catch {
+    // 个别环境禁用 confirm，直接执行清空
+  }
+  if (!confirmed) return;
+  state.chatMessages = [];
+  await chrome.storage.local
+    .remove(chatKey(state.video.bvid, state.video.cid))
+    .catch(() => {});
+  renderChat();
+  showToast("对话已清空");
+}
+
+async function exportChat() {
+  if (!state.video?.bvid) {
+    showToast("先打开一个 B站视频", "error");
+    return;
+  }
+  if (!state.chatMessages.length) {
+    showToast("还没有对话可导出", "error");
+    return;
+  }
+  try {
+    const markdown = buildChatMarkdown({
+      video: state.video,
+      messages: state.chatMessages,
+    });
+    const rawName = (state.video.title || state.video.bvid || "bili-digest")
+      .replace(/[\\/:*?"<>|]/g, "_")
+      .slice(0, 50);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${rawName}-对话.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("已导出对话");
+  } catch (error) {
+    showToast(`导出失败：${error.message}`, "error");
+  }
+}
+
+// ============================================================
 // 设置
 // ============================================================
 
@@ -903,6 +1116,9 @@ function switchTab(tab) {
     captureCurrentSeconds();
     refreshNotes();
   }
+  if (tab === "chat" && !state.chatLoaded) {
+    loadChat();
+  }
   if (tab === "settings" && !state.settingsLoaded) {
     loadSettings();
   }
@@ -932,6 +1148,15 @@ generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false 
 regenerateOverviewBtn.addEventListener("click", () => loadOverview({ force: true }));
 polishNoteBtn.addEventListener("click", polishCurrentNote);
 saveNoteBtn.addEventListener("click", saveCurrentNote);
+exportChatBtn.addEventListener("click", exportChat);
+clearChatBtn.addEventListener("click", clearChat);
+sendChatBtn.addEventListener("click", sendChat);
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    sendChat();
+  }
+});
 saveSettingsBtn.addEventListener("click", saveSettings);
 testKeyBtn.addEventListener("click", testApiKey);
 targetLanguageSelect.addEventListener("change", updateCustomVisibility);

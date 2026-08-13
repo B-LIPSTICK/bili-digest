@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildMarkdown } from "../lib/export.js";
+import { buildMarkdown, buildChatMarkdown } from "../lib/export.js";
 
 const FIXED_DATE = new Date("2026-08-13T08:00:00.000Z");
 
@@ -77,4 +77,29 @@ test("buildMarkdown 输出视频简介", () => {
   });
   assert.match(markdown, /## 视频简介/);
   assert.match(markdown, /这是视频简介/);
+});
+
+test("buildChatMarkdown 输出对话记录", () => {
+  const markdown = buildChatMarkdown({
+    video: { bvid: "BV1xx411c7mD", title: "测试视频", author: "某UP主" },
+    messages: [
+      { role: "user", content: "讲了什么？" },
+      { role: "assistant", content: "讲了三个要点。" },
+    ],
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /^# 测试视频 · 对话记录/);
+  assert.match(markdown, /## 我/);
+  assert.match(markdown, /讲了什么？/);
+  assert.match(markdown, /## AI/);
+  assert.match(markdown, /讲了三个要点。/);
+});
+
+test("buildChatMarkdown 空对话给占位说明", () => {
+  const markdown = buildChatMarkdown({
+    video: { bvid: "BV1xx411c7mD", title: "测试视频" },
+    messages: [],
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /暂无对话内容/);
 });

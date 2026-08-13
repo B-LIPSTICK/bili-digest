@@ -152,7 +152,7 @@ function createDigestButton() {
     padding: 0 16px;
     border: none;
     border-radius: 16px;
-    background: #00aeec;
+    background: #b6422c;
     color: #fff;
     font-size: 13px;
     font-weight: 500;
@@ -165,10 +165,10 @@ function createDigestButton() {
   `;
 
   button.addEventListener("mouseenter", () => {
-    button.style.background = "#009bd4";
+    button.style.background = "#96321f";
   });
   button.addEventListener("mouseleave", () => {
-    button.style.background = "#00aeec";
+    button.style.background = "#b6422c";
   });
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -284,7 +284,7 @@ function ensureNoteButtonHost() {
     padding: 0 14px;
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 15px;
-    background: #00aeec;
+    background: #b6422c;
     color: #fff;
     font-size: 12px;
     font-weight: 500;
@@ -295,10 +295,10 @@ function ensureNoteButtonHost() {
     transition: background 0.15s ease;
   `;
   button.addEventListener("mouseenter", () => {
-    button.style.background = "#009bd4";
+    button.style.background = "#96321f";
   });
   button.addEventListener("mouseleave", () => {
-    button.style.background = "#00aeec";
+    button.style.background = "#b6422c";
   });
   button.addEventListener("click", (event) => {
     event.preventDefault();
@@ -405,7 +405,7 @@ function showToast(text, kind = "info") {
   const toast = document.createElement("div");
   toast.id = "bili-digest-toast";
   toast.textContent = text;
-  const background = kind === "error" ? "#e45d5d" : "#00aeec";
+  const background = kind === "error" ? "#96321f" : "#b6422c";
   toast.style.cssText = `
     position: fixed;
     bottom: 24px;

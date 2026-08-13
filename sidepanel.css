@@ -1,36 +1,35 @@
 /*
- * 设计取向：暖纸面 + 印刷感。
+ * 设计取向：编辑部校样台。
  *
- * 参考真人维护的同类扩展（Bilibili-Obsidian-Clipper、youtube-digest）：
- * 浅色背景、系统字体、单一克制的强调色、细边框轻阴影，尽量少做
- * 渐变、发光和动效，让界面读起来像一张纸而不是一块屏幕。
+ * 炭黑刊头 + 暖纸底 + 铅印朱红，标题用宋体、时间戳用等宽字，
+ * 让侧边栏读起来像一份排好的讲义，而不是常见的渐变玻璃模板。
  */
 
 :root {
-  --bg: #f5f3ee;
-  --surface: #ffffff;
-  --surface-2: #f8f6f1;
-  --border: #e7e2d8;
-  --border-strong: #d8d1c4;
-  --text: #24221d;
-  --text-secondary: #63605a;
-  --muted: #98928a;
-  --accent: #3d7395;
-  --accent-hover: #2f5f7d;
-  --accent-dim: rgba(61, 115, 149, 0.08);
-  --highlight: #f6e3bd;
-  --highlight-strong: #e7c985;
-  --danger: #b8543f;
-  --ok: #4f7d4d;
+  --paper: #f3efe6;
+  --surface: #fbf8f1;
+  --surface-2: #f6f1e7;
+  --ink: #211f1a;
+  --ink-2: #6c675c;
+  --ink-3: #a09a8c;
+  --line: #ddd6c6;
+  --line-strong: #b9b09d;
+  --accent: #b6422c;
+  --accent-strong: #96321f;
+  --accent-soft: rgba(182, 66, 44, 0.08);
+  --ok: #4e6e4e;
+  --danger: #b6422c;
+  --masthead: #211f1a;
+  --masthead-text: #f3efe6;
 
-  --font-body: system-ui, -apple-system, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  --font-title: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  --font-display: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "SF Mono", Consolas, ui-monospace, monospace;
 
-  --shadow-sm: 0 1px 2px rgba(50, 45, 35, 0.05);
-  --shadow-md: 0 2px 8px rgba(50, 45, 35, 0.07);
-  --shadow-lg: 0 12px 32px rgba(50, 45, 35, 0.16);
+  --shadow-sm: 0 1px 2px rgba(33, 31, 26, 0.06);
+  --shadow-md: 0 3px 10px rgba(33, 31, 26, 0.08);
+  --shadow-lg: 0 14px 34px rgba(33, 31, 26, 0.18);
 }
 
 * {
@@ -47,16 +46,27 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
 
+/* 极淡纸张颗粒，制造一点点印刷质感 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,54 +74,57 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 3px;
+  background: var(--line-strong);
+  border: 2px solid var(--paper);
+  border-radius: 4px;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* ============ 头部 ============ */
+/* ============ 刊头 ============ */
 
 .header {
   flex-shrink: 0;
-  padding: 14px 18px 12px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  padding: 14px 18px 13px;
+  background: var(--masthead);
+  color: var(--masthead-text);
+  border-bottom: 2px solid var(--accent);
 }
 
 .brand-row {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 8px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 9px;
 }
 
 .brand-mark {
   width: 9px;
   height: 9px;
-  border-radius: 2px;
+  align-self: center;
   background: var(--accent);
 }
 
 .brand-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .brand-sub {
+  font-family: var(--font-display);
   font-size: 12px;
-  color: var(--muted);
+  color: rgba(243, 239, 230, 0.62);
 }
 
 .video-title {
   margin: 0;
-  font-family: var(--font-title);
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -120,26 +133,27 @@ body {
 
 .video-meta {
   margin-top: 4px;
-  font-size: 12px;
-  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(243, 239, 230, 0.55);
 }
 
-/* ============ 标签页 ============ */
+/* ============ 栏目标签 ============ */
 
 .tabs {
   display: flex;
   flex: 0 0 auto;
-  padding: 0 10px;
+  padding: 0 8px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .tab {
   position: relative;
-  padding: 9px 14px 10px;
+  padding: 10px 13px 9px;
   border: none;
   background: none;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -148,26 +162,26 @@ body {
 .tab::after {
   content: "";
   position: absolute;
-  left: 14px;
-  right: 14px;
+  left: 50%;
   bottom: -1px;
+  width: 0;
   height: 2px;
   background: var(--accent);
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  transform: translateX(-50%);
+  transition: width 0.16s ease;
 }
 
 .tab:hover {
-  color: var(--text);
+  color: var(--ink);
 }
 
 .tab.active {
-  color: var(--text);
+  color: var(--ink);
   font-weight: 600;
 }
 
 .tab.active::after {
-  opacity: 1;
+  width: 18px;
 }
 
 /* ============ 内容区 ============ */
@@ -208,6 +222,12 @@ body {
   font-size: 12px;
 }
 
+.chat-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ============ 按钮 ============ */
 
 button {
@@ -217,9 +237,9 @@ button {
 .primary-btn {
   padding: 7px 16px;
   border: none;
-  border-radius: 7px;
-  background: var(--accent);
-  color: #fff;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--surface);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -227,22 +247,23 @@ button {
 }
 
 .primary-btn:hover {
-  background: var(--accent-hover);
+  background: var(--accent-strong);
 }
 
 .primary-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: wait;
 }
 
 .ghost-btn {
-  padding: 6px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
+  padding: 6px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--surface);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: 12px;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .ghost-btn:hover {
@@ -251,7 +272,7 @@ button {
 }
 
 .ghost-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: wait;
 }
 
@@ -259,16 +280,16 @@ button {
   width: 28px;
   height: 28px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 3px;
   background: none;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: 14px;
   cursor: pointer;
 }
 
 .icon-btn:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
+  border-color: var(--line);
+  color: var(--ink);
 }
 
 .icon-btn.spinning {
@@ -286,24 +307,24 @@ button {
 .mode-switch {
   display: inline-flex;
   padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
   background: var(--surface);
 }
 
 .mode {
   padding: 4px 11px;
   border: none;
-  border-radius: 5px;
+  border-radius: 2px;
   background: none;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: 12px;
   cursor: pointer;
 }
 
 .mode.active {
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--ink);
+  color: var(--surface);
   font-weight: 600;
 }
 
@@ -311,7 +332,7 @@ button {
 
 .status-line {
   margin-bottom: 10px;
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 12px;
 }
 
@@ -322,8 +343,7 @@ button {
 .progress-track {
   height: 3px;
   margin-bottom: 12px;
-  border-radius: 2px;
-  background: var(--border);
+  background: var(--line);
   overflow: hidden;
 }
 
@@ -339,21 +359,35 @@ button {
 .segments {
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
 .segment {
-  padding: 7px 10px;
-  border-radius: 6px;
+  position: relative;
+  padding: 7px 10px 7px 14px;
   cursor: pointer;
+}
+
+.segment::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  background: transparent;
 }
 
 .segment:hover {
   background: var(--surface-2);
 }
 
+.segment:hover::before,
+.segment.active::before {
+  background: var(--accent);
+}
+
 .segment.active {
-  background: var(--highlight);
+  background: var(--accent-soft);
 }
 
 .segment-time {
@@ -370,10 +404,10 @@ button {
   display: inline-block;
   margin-left: 6px;
   padding: 0 7px;
-  border: 1px solid var(--border-strong);
-  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
   background: var(--surface);
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 11px;
   cursor: pointer;
   opacity: 0;
@@ -390,18 +424,19 @@ button {
 }
 
 .segment-zh {
-  color: var(--text);
+  color: var(--ink);
   font-size: 13.5px;
 }
 
 .segment-tr {
   margin-top: 1px;
-  color: var(--text-secondary);
+  padding-left: 52px;
+  color: var(--ink-2);
   font-size: 12.5px;
 }
 
 .segment.tr-empty .segment-tr {
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 /* ============ 解释浮层 ============ */
@@ -414,8 +449,8 @@ button {
   z-index: 40;
   max-height: 55%;
   padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   overflow-y: auto;
@@ -429,6 +464,7 @@ button {
 }
 
 .sheet-title {
+  font-family: var(--font-display);
   font-size: 13px;
   font-weight: 600;
 }
@@ -438,13 +474,12 @@ button {
   padding: 8px 11px;
   border-left: 2px solid var(--accent);
   background: var(--surface-2);
-  border-radius: 0 6px 6px 0;
-  font-family: var(--font-title);
+  font-family: var(--font-display);
   font-size: 13.5px;
 }
 
 .sheet-result {
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: 13px;
   line-height: 1.75;
   white-space: pre-wrap;
@@ -459,29 +494,32 @@ button {
 }
 
 .summary-card {
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ink);
   background: var(--surface);
 }
 
 .card-label {
   margin: 0 0 7px;
-  font-size: 12px;
-  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
 }
 
 .summary-text {
   margin: 0;
-  font-family: var(--font-title);
+  font-family: var(--font-display);
   font-size: 14px;
-  line-height: 1.75;
+  line-height: 1.8;
 }
 
 .chapter-card {
   padding: 9px 13px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
   background: var(--surface);
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -500,11 +538,10 @@ button {
   display: inline-block;
   margin-top: 4px;
   padding: 1px 7px;
-  border-radius: 5px;
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .keypoints {
@@ -517,11 +554,11 @@ button {
   position: relative;
   margin-bottom: 6px;
   padding: 7px 10px 7px 22px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
   background: var(--surface);
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .keypoints li::before {
@@ -531,17 +568,15 @@ button {
   top: 14px;
   width: 5px;
   height: 5px;
-  border-radius: 1px;
-  background: var(--highlight-strong);
+  background: var(--accent);
 }
 
 /* ============ 金句 ============ */
 
 .quote-item {
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--highlight-strong);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
   background: var(--surface);
 }
 
@@ -551,9 +586,9 @@ button {
 
 .quote-text {
   margin: 0;
-  font-family: var(--font-title);
+  font-family: var(--font-display);
   font-size: 13.5px;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 .quote-meta {
@@ -585,10 +620,10 @@ button {
 
 .quote-actions button {
   padding: 1px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
   background: var(--surface);
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 11px;
   cursor: pointer;
 }
@@ -602,18 +637,19 @@ button {
 
 .note-composer {
   padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
   background: var(--surface);
 }
 
-.note-composer textarea {
+.note-composer textarea,
+.chat-composer textarea {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 13px;
   line-height: 1.6;
@@ -621,15 +657,21 @@ button {
   outline: none;
 }
 
-.note-composer textarea:focus {
+.note-composer textarea:focus,
+.chat-composer textarea:focus {
   border-color: var(--accent);
 }
 
-.note-composer-row {
+.note-composer-row,
+.chat-composer-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.chat-composer-row {
+  justify-content: flex-end;
 }
 
 .note-composer-actions {
@@ -640,11 +682,10 @@ button {
 
 .chip {
   padding: 2px 8px;
-  border-radius: 5px;
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .notes {
@@ -661,21 +702,26 @@ button {
 .note-card {
   position: relative;
   padding: 10px 32px 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
   background: var(--surface);
 }
 
 .note-head {
+  display: flex;
+  align-items: center;
   margin-bottom: 4px;
+  padding-right: 20px;
 }
 
 .note-time {
+  padding: 0;
+  border: none;
+  background: none;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--accent);
   cursor: pointer;
-  text-decoration: none;
 }
 
 .note-time:hover {
@@ -685,7 +731,7 @@ button {
 .note-video-title {
   margin-left: 8px;
   font-size: 11.5px;
-  color: var(--muted);
+  color: var(--ink-3);
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -707,10 +753,10 @@ button {
 
 .note-actions button {
   padding: 2px 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
   background: var(--surface);
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 11px;
   cursor: pointer;
 }
@@ -727,9 +773,9 @@ button {
   width: 22px;
   height: 22px;
   border: none;
-  border-radius: 5px;
+  border-radius: 2px;
   background: none;
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 12px;
   cursor: pointer;
   opacity: 0;
@@ -741,8 +787,76 @@ button {
 }
 
 .note-delete:hover {
-  background: rgba(184, 84, 63, 0.1);
+  background: var(--accent-soft);
   color: var(--danger);
+}
+
+/* ============ 对话 ============ */
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-msg-head {
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+}
+
+.chat-msg.user {
+  align-items: flex-end;
+}
+
+.chat-msg.user .chat-msg-text {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+  max-width: 88%;
+}
+
+.chat-msg.ai .chat-msg-text {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  max-width: 94%;
+}
+
+.chat-msg-text {
+  padding: 9px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-msg.ai.typing .chat-msg-text {
+  color: var(--ink-3);
+}
+
+.chat-composer {
+  position: sticky;
+  bottom: 0;
+  margin-top: 4px;
+  padding: 10px 0 14px;
+  background: linear-gradient(
+    to bottom,
+    rgba(243, 239, 230, 0),
+    var(--paper) 28%
+  );
+}
+
+.chat-composer textarea {
+  resize: none;
 }
 
 /* ============ 设置 ============ */
@@ -754,8 +868,9 @@ button {
 .group-title {
   margin: 0 0 10px;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -763,7 +878,7 @@ button {
   display: block;
   margin-bottom: 5px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 input + .field-label,
@@ -782,10 +897,10 @@ input[type="text"],
 select {
   width: 100%;
   padding: 7px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
@@ -803,12 +918,12 @@ select:focus {
 .hint {
   margin: 7px 0 0;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   line-height: 1.65;
 }
 
 .hint.dim {
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .hint.ok {
@@ -824,7 +939,7 @@ select:focus {
 .empty-state {
   padding: 30px 16px;
   text-align: center;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .empty-state .glyph {
@@ -847,9 +962,9 @@ select:focus {
   z-index: 50;
   max-width: 84%;
   padding: 8px 14px;
-  border-radius: 7px;
-  background: #3a3732;
-  color: #fff;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--surface);
   font-size: 12.5px;
   box-shadow: var(--shadow-lg);
   transform: translateX(-50%) translateY(6px);
