@@ -3,7 +3,7 @@
  *
  * 职责：
  * 1. 用 WBI 签名调用 B站网页端接口，获取视频信息与字幕；
- * 2. 调用 DeepSeek 完成翻译、概览、选中解释；
+ * 2. 调用用户选择的 AI 供应商完成翻译、概览、选中解释；
  * 3. 在 chrome.storage.local 中缓存结果并管理笔记；
  * 4. 作为消息中枢，路由侧边栏 / 内容脚本的请求。
  *
@@ -18,7 +18,12 @@ import {
   normalizeSubtitleUrl,
   secondsToTimestamp,
 } from "./lib/subtitle.js";
-import { requestDeepSeek, parseLooseJson } from "./lib/deepseek.js";
+import {
+  AI_PROVIDERS,
+  normalizeProviderConfig,
+  requestAiCompletion,
+  parseLooseJson,
+} from "./lib/ai.js";
 
 const DEBUG = false;
 const TRANSLATE_BATCH_SIZE = 3;
@@ -40,13 +45,59 @@ const store = {
 };
 
 const DEFAULT_SETTINGS = {
-  deepseekApiKey: "",
+  aiProvider: "deepseek",
+  providers: Object.fromEntries(
+    Object.keys(AI_PROVIDERS).map((id) => [
+      id,
+      { apiKey: "", baseUrl: "", model: "" },
+    ]),
+  ),
   targetLanguage: "English",
   customLanguage: "",
 };
 
+/**
+ * 清洗单个供应商配置，只保留字符串字段。
+ */
+function sanitizeProviderValues(values = {}) {
+  return {
+    apiKey: String(values.apiKey ?? "").trim(),
+    baseUrl: String(values.baseUrl ?? "").trim(),
+    model: String(values.model ?? "").trim(),
+  };
+}
+
+/**
+ * 深合并设置：顶层字段覆盖，providers 按供应商逐个合并，
+ * 避免保存某一个供应商时抹掉其它供应商已填的 Key。
+ */
+function mergeSettings(base, incoming = {}) {
+  const merged = { ...base, ...incoming };
+  merged.providers = { ...base.providers };
+  for (const id of Object.keys(AI_PROVIDERS)) {
+    merged.providers[id] = sanitizeProviderValues({
+      ...(merged.providers[id] || {}),
+      ...(incoming?.providers?.[id] || {}),
+    });
+  }
+  if (!Object.hasOwn(AI_PROVIDERS, merged.aiProvider)) {
+    merged.aiProvider = "deepseek";
+  }
+  merged.targetLanguage = String(merged.targetLanguage || "English");
+  merged.customLanguage = String(merged.customLanguage || "").trim();
+  // 旧版字段已在 normalizeProviderConfig 里并入 providers.deepseek，此处不再保留
+  delete merged.deepseekApiKey;
+  return merged;
+}
+
 async function getSettings() {
-  return { ...DEFAULT_SETTINGS, ...(await store.get("settings", {})) };
+  const stored = await store.get("settings", {});
+  const settings = mergeSettings(DEFAULT_SETTINGS, stored);
+  // 只读迁移旧版 deepseekApiKey，让所有调用方统一看到新 schema
+  if (stored?.deepseekApiKey && !settings.providers.deepseek.apiKey) {
+    settings.providers.deepseek.apiKey = String(stored.deepseekApiKey).trim();
+  }
+  return settings;
 }
 
 // ============================================================
@@ -305,8 +356,9 @@ async function handleTranslate({ bvid, cid, segments, targetLanguage }) {
       target_language: targetLanguage,
       segments_json: JSON.stringify(batch),
     });
-    const content = await requestDeepSeek(
-      settings.deepseekApiKey,
+    const config = normalizeProviderConfig(settings);
+    const content = await requestAiCompletion(
+      config,
       [{ role: "user", content: prompt }],
       { json: true },
     );
@@ -359,8 +411,9 @@ async function handleGenerateOverview({ bvid, cid, segments, force = false }) {
     .map((segment) => `[${secondsToTimestamp(segment.from)}] ${segment.content}`)
     .join("\n");
   const prompt = await renderPrompt("analysis.md", { transcript });
-  const content = await requestDeepSeek(
-    settings.deepseekApiKey,
+  const config = normalizeProviderConfig(settings);
+  const content = await requestAiCompletion(
+    config,
     [{ role: "user", content: prompt }],
     { json: true },
   );
@@ -391,7 +444,8 @@ async function handleExplain({ text, context }) {
   if (!text) throw new Error("没有选中文本");
   const settings = await getSettings();
   const prompt = await renderPrompt("explain.md", { text, context });
-  const result = await requestDeepSeek(settings.deepseekApiKey, [
+  const config = normalizeProviderConfig(settings);
+  const result = await requestAiCompletion(config, [
     { role: "user", content: prompt },
   ]);
   return { text: result };
@@ -441,15 +495,26 @@ async function handleDeleteNote({ videoId, noteId }) {
 // ============================================================
 
 async function handleSetSettings({ settings }) {
-  const merged = { ...DEFAULT_SETTINGS, ...settings };
+  const current = await getSettings();
+  const merged = mergeSettings(current, settings);
   await store.set("settings", merged);
   return merged;
 }
 
-async function handleTestApiKey({ apiKey }) {
-  const content = await requestDeepSeek(apiKey, [
-    { role: "user", content: "请只回复两个字：正常" },
-  ]);
+async function handleTestApiKey({ provider, apiKey, baseUrl, model }) {
+  const preset = AI_PROVIDERS[provider] || AI_PROVIDERS.custom;
+  const config = {
+    id: preset.id,
+    name: preset.name,
+    apiKey: String(apiKey ?? "").trim(),
+    baseUrl: String(baseUrl ?? preset.baseUrl ?? "").trim(),
+    model: String(model ?? preset.model ?? "").trim(),
+  };
+  const content = await requestAiCompletion(
+    config,
+    [{ role: "user", content: "请只回复两个字：正常" }],
+    { timeoutMs: 30_000 },
+  );
   return { text: content.trim() };
 }
 
@@ -484,7 +549,12 @@ async function route(message, sender) {
     case "setSettings":
       return { settings: await handleSetSettings({ settings: message.settings }) };
     case "testApiKey":
-      return await handleTestApiKey({ apiKey: message.apiKey });
+      return await handleTestApiKey({
+        provider: message.provider,
+        apiKey: message.apiKey,
+        baseUrl: message.baseUrl,
+        model: message.model,
+      });
     case "getVideoInfo":
       return { info: await handleGetVideoInfo(message.bvid) };
     case "fetchTranscript":

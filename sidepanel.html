@@ -65,7 +65,9 @@
       <section id="tab-settings" class="panel">
         <div class="settings-group">
           <h2 class="group-title">AI 服务</h2>
-          <label class="field-label" for="apiKeyInput">DeepSeek API Key</label>
+          <label class="field-label" for="providerSelect">服务商</label>
+          <select id="providerSelect"></select>
+          <label class="field-label" for="apiKeyInput">API Key</label>
           <div class="key-row">
             <input
               id="apiKeyInput"
@@ -76,12 +78,28 @@
             />
             <button id="toggleKeyBtn" class="icon-btn" title="显示/隐藏" aria-label="显示或隐藏密钥">◉</button>
           </div>
+          <label class="field-label" for="baseUrlInput">接口地址（Base URL）</label>
+          <input
+            id="baseUrlInput"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="https://…"
+          />
+          <label class="field-label" for="modelInput">模型</label>
+          <input
+            id="modelInput"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="模型名称"
+          />
           <div class="button-row">
             <button id="testKeyBtn" class="ghost-btn">测试连接</button>
           </div>
           <div id="keyTestResult" class="hint"></div>
           <p class="hint dim">
-            模型固定为 deepseek-v4-flash（非思考模式），密钥只保存在本机 Chrome 存储中，不会上传到任何第三方服务器之外。
+            预设服务商只需填 API Key，接口地址和模型已按官方默认值预填；自定义端点需三项都填。密钥只保存在本机 Chrome 存储中。
           </p>
         </div>
 
@@ -125,6 +143,6 @@
     </div>
 
     <div id="toast" class="toast hidden" role="status"></div>
-    <script src="sidepanel.js"></script>
+    <script type="module" src="sidepanel.js"></script>
   </body>
 </html>

@@ -9,7 +9,7 @@ Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，�
 - AI 生成内容概要、章节划分和复习要点
 - 点任意一条字幕，让 AI 解释它的含义和背景
 - 保存带时间戳的笔记，点击时间戳随时回到视频位置
-- 自带密钥（BYOK）：只使用你自己的 DeepSeek Key，密钥和笔记都保存在本机
+- 自带密钥（BYOK）：使用你自己的 API Key，支持 DeepSeek、OpenAI、Kimi、GLM、通义千问和任意 OpenAI 兼容端点
 
 ## 截图
 
@@ -31,15 +31,24 @@ Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，�
 
 注意：这是「加载已解压」方式安装的扩展，Chrome 不会自动更新。目录移动或删除后需要重新加载。
 
-## 配置 DeepSeek API Key
+## 配置 AI 服务
 
-AI 功能（翻译、概览、解释）需要你自己的 DeepSeek Key：
+AI 功能（翻译、概览、逐句解释）需要你自己的 API Key，可以任选一家：
 
-1. 打开 [DeepSeek 开放平台](https://platform.deepseek.com/)，注册并创建 API Key；
-2. 在扩展侧边栏的「设置」页粘贴 Key（或右键扩展图标 → 选项）；
+| 服务商 | 接口地址 | 默认模型 | 申请入口 |
+| --- | --- | --- | --- |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash` | [开放平台](https://platform.deepseek.com/) |
+| OpenAI | `https://api.openai.com/v1` | `gpt-5.6-terra` | [开放平台](https://platform.openai.com/) |
+| Moonshot Kimi | `https://api.moonshot.cn/v1` | `kimi-k3` | [开放平台](https://platform.moonshot.cn/) |
+| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-5.2` | [开放平台](https://open.bigmodel.cn/) |
+| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | [百炼控制台](https://dashscope.console.aliyun.com/) |
+| 自定义 | 你填写 | 你填写 | 任意 OpenAI 兼容端点，如本地 Ollama、vLLM |
+
+1. 到对应平台注册并创建 API Key；
+2. 在扩展侧边栏的「设置」页选择服务商并粘贴 Key（或右键扩展图标 → 选项）；
 3. 点「测试连接」确认可用。
 
-模型固定为 `deepseek-v4-flash`（非思考模式），接口为官方 `https://api.deepseek.com`。**不要把 Key 贴进聊天、截图或任何公开的地方。**
+预设服务商只需填 Key，接口地址和模型已按官方默认值预填，想换模型可以直接覆盖；选择「自定义」时需要同时填写接口地址、模型和 Key。**不要把 Key 贴进聊天、截图或任何公开的地方。**
 
 ## 使用前提
 
@@ -64,7 +73,7 @@ B站视频页 (content.js)
 后台服务 (background.js)
    │  WBI 签名 → x/player/wbi/v2 → 字幕轨道列表
    │  下载字幕 JSON（aisubtitle.hdslb.com）
-   │  DeepSeek → 翻译 / 概览 / 解释
+   │  所选 AI 服务 → 翻译 / 概览 / 解释
    ▼
 侧边栏 (sidepanel.*)
    字幕三视图 · 时间戳跳转 · 笔记 · 设置
@@ -80,12 +89,12 @@ B站视频页 (content.js)
 ## 数据与隐私
 
 - 字幕请求发给 B站（`api.bilibili.com`、`aisubtitle.hdslb.com`）；
-- AI 请求发给 DeepSeek（`api.deepseek.com`），只发送字幕或你选中的文本；
+- AI 请求发给你在设置中选择的服务商，只发送字幕或你选中的文本；若使用「自定义」端点，数据直接发往你填写的地址，扩展不中转；
 - 没有账号系统、广告、埋点或遥测。详见 [PRIVACY.md](PRIVACY.md)。
 
 ## 费用
 
-字幕提取免费。AI 功能按 DeepSeek 官方定价计费，翻译只在你切换到译文视图时发生，且结果会缓存。一个 20 分钟的视频全文翻译通常只需几分钱人民币量级，具体以 [DeepSeek 官方定价页](https://api-docs.deepseek.com/quick_start/pricing) 为准。
+字幕提取免费。AI 功能按你选择的服务商定价计费，翻译只在你切换到译文视图时发生，且结果会缓存。各家的价格和优惠不同，请以对应的官方定价页为准（例如 [DeepSeek 定价页](https://api-docs.deepseek.com/quick_start/pricing)）。
 
 ## 字幕提取不出来？
 
@@ -106,14 +115,14 @@ B站视频页 (content.js)
 - 本项目**仅供个人学习交流**，使用 B站网页端**公开可见**的接口，未修改、未绕过任何访问控制；
 - B站接口与页面结构可能随时变化，导致扩展失效；如遇失效请更新到最新代码；
 - 请遵守 B站用户协议与相关法律法规，不要将本项目用于商业用途或大规模抓取；
-- 本项目与哔哩哔哩、DeepSeek 均无隶属关系。
+- 本项目与哔哩哔哩及各 AI 服务商均无隶属关系。
 
 ## 开发
 
 纯 HTML / CSS / JavaScript，无构建步骤。Node.js 仅用于测试和检查。
 
 ```bash
-npm test      # 单元测试（WBI 签名、字幕解析）
+npm test      # 单元测试（WBI 签名、字幕解析、AI 配置）
 npm run check # 静态检查：manifest、文件完整性、JS 语法
 npm run package # 打包成 dist/bili-digest-vX.Y.Z.zip
 ```

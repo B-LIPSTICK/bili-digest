@@ -9,7 +9,13 @@
     "https://www.bilibili.com/*",
     "https://api.bilibili.com/*",
     "https://*.hdslb.com/*",
-    "https://api.deepseek.com/*"
+    "https://api.deepseek.com/*",
+    "https://api.openai.com/*",
+    "https://api.moonshot.cn/*",
+    "https://open.bigmodel.cn/*",
+    "https://dashscope.aliyuncs.com/*",
+    "https://*/*",
+    "http://*/*"
   ],
   "action": {
     "default_title": "打开 Bili Digest",

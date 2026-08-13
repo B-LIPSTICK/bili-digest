@@ -7,6 +7,8 @@
  * 所有数据请求都通过后台服务（background.js）统一处理。
  */
 
+import { AI_PROVIDERS } from "./lib/ai.js";
+
 const state = {
   video: null,
   segments: [],
@@ -15,7 +17,8 @@ const state = {
   translating: false,
   overview: null,
   settings: {
-    deepseekApiKey: "",
+    aiProvider: "deepseek",
+    providers: {},
     targetLanguage: "English",
     customLanguage: "",
   },
@@ -47,10 +50,13 @@ const noteTimeChipEl = $("noteTimeChip");
 const saveNoteBtn = $("saveNoteBtn");
 const notesStatusEl = $("notesStatus");
 const notesListEl = $("notesList");
+const providerSelect = $("providerSelect");
 const apiKeyInput = $("apiKeyInput");
 const toggleKeyBtn = $("toggleKeyBtn");
 const testKeyBtn = $("testKeyBtn");
 const keyTestResultEl = $("keyTestResult");
+const baseUrlInput = $("baseUrlInput");
+const modelInput = $("modelInput");
 const targetLanguageSelect = $("targetLanguageSelect");
 const customLanguageInput = $("customLanguageInput");
 const saveSettingsBtn = $("saveSettingsBtn");
@@ -59,6 +65,9 @@ const explainSheetEl = $("explainSheet");
 const explainOriginalEl = $("explainOriginal");
 const explainResultEl = $("explainResult");
 const closeExplainBtn = $("closeExplainBtn");
+
+// 每个供应商一组草稿值，切换供应商时互不覆盖
+const providerDraft = {};
 
 // ============================================================
 // 工具函数
@@ -555,11 +564,52 @@ async function saveCurrentNote() {
 // 设置
 // ============================================================
 
+function presetFor(id) {
+  return AI_PROVIDERS[id] || AI_PROVIDERS.custom;
+}
+
+function readCurrentProviderDraft() {
+  providerDraft[providerSelect.value] = {
+    apiKey: apiKeyInput.value.trim(),
+    baseUrl: baseUrlInput.value.trim(),
+    model: modelInput.value.trim(),
+  };
+}
+
+function fillProviderFields(id) {
+  const preset = presetFor(id);
+  const saved = providerDraft[id] || {};
+  apiKeyInput.value = saved.apiKey || "";
+  baseUrlInput.value = saved.baseUrl || preset.baseUrl || "";
+  modelInput.value = saved.model || preset.model || "";
+  baseUrlInput.placeholder = preset.baseUrl || "https://your-endpoint/v1";
+  modelInput.placeholder = preset.model || "模型名称";
+  const isCustom = id === "custom";
+  baseUrlInput.classList.toggle("required", isCustom);
+  modelInput.classList.toggle("required", isCustom);
+}
+
+function buildProviderOptions() {
+  providerSelect.replaceChildren();
+  for (const preset of Object.values(AI_PROVIDERS)) {
+    const option = document.createElement("option");
+    option.value = preset.id;
+    option.textContent = preset.name;
+    providerSelect.appendChild(option);
+  }
+}
+
 async function loadSettings() {
   try {
     const result = await send("getSettings");
     state.settings = result.settings;
-    apiKeyInput.value = state.settings.deepseekApiKey || "";
+    for (const [id, values] of Object.entries(state.settings.providers || {})) {
+      providerDraft[id] = { ...values };
+    }
+    providerSelect.value = Object.hasOwn(AI_PROVIDERS, state.settings.aiProvider)
+      ? state.settings.aiProvider
+      : "deepseek";
+    fillProviderFields(providerSelect.value);
     targetLanguageSelect.value = state.settings.targetLanguage || "English";
     customLanguageInput.value = state.settings.customLanguage || "";
     updateCustomVisibility();
@@ -577,14 +627,16 @@ function updateCustomVisibility() {
 }
 
 async function saveSettings() {
+  readCurrentProviderDraft();
   const settings = {
-    deepseekApiKey: apiKeyInput.value.trim(),
+    aiProvider: providerSelect.value,
+    providers: providerDraft,
     targetLanguage: targetLanguageSelect.value,
     customLanguage: customLanguageInput.value.trim(),
   };
   try {
-    await send("setSettings", { settings });
-    state.settings = settings;
+    const result = await send("setSettings", { settings });
+    state.settings = result.settings;
     showToast("设置已保存");
   } catch (error) {
     showToast(error.message, "error");
@@ -596,7 +648,14 @@ async function testApiKey() {
   keyTestResultEl.textContent = "正在测试…";
   testKeyBtn.disabled = true;
   try {
-    const result = await send("testApiKey", { apiKey: apiKeyInput.value.trim() });
+    readCurrentProviderDraft();
+    const preset = presetFor(providerSelect.value);
+    const result = await send("testApiKey", {
+      provider: providerSelect.value,
+      apiKey: apiKeyInput.value.trim(),
+      baseUrl: baseUrlInput.value.trim() || preset.baseUrl || "",
+      model: modelInput.value.trim() || preset.model || "",
+    });
     keyTestResultEl.className = "hint ok";
     keyTestResultEl.textContent = `连接成功：${result.text}`;
   } catch (error) {
@@ -655,6 +714,11 @@ saveNoteBtn.addEventListener("click", saveCurrentNote);
 saveSettingsBtn.addEventListener("click", saveSettings);
 testKeyBtn.addEventListener("click", testApiKey);
 targetLanguageSelect.addEventListener("change", updateCustomVisibility);
+providerSelect.addEventListener("change", () => {
+  readCurrentProviderDraft();
+  fillProviderFields(providerSelect.value);
+});
+buildProviderOptions();
 
 toggleKeyBtn.addEventListener("click", () => {
   const showing = apiKeyInput.type === "text";

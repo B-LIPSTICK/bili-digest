@@ -24,7 +24,7 @@ const REQUIRED_FILES = [
   "options.js",
   "lib/wbi.js",
   "lib/subtitle.js",
-  "lib/deepseek.js",
+  "lib/ai.js",
   "prompts/translation.md",
   "prompts/analysis.md",
   "prompts/explain.md",
@@ -42,7 +42,7 @@ const JS_FILES = [
   "options.js",
   "lib/wbi.js",
   "lib/subtitle.js",
-  "lib/deepseek.js",
+  "lib/ai.js",
 ];
 
 function fail(message) {

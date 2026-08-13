@@ -15,17 +15,23 @@
 
       <section class="group">
         <h2>AI 服务</h2>
-        <label class="field-label" for="apiKeyInput">DeepSeek API Key</label>
+        <label class="field-label" for="providerSelect">服务商</label>
+        <select id="providerSelect"></select>
+        <label class="field-label" for="apiKeyInput">API Key</label>
         <div class="key-row">
           <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" />
           <button id="toggleKeyBtn" class="icon-btn" type="button" title="显示/隐藏">◉</button>
         </div>
+        <label class="field-label" for="baseUrlInput">接口地址（Base URL）</label>
+        <input id="baseUrlInput" type="text" autocomplete="off" spellcheck="false" placeholder="https://…" />
+        <label class="field-label" for="modelInput">模型</label>
+        <input id="modelInput" type="text" autocomplete="off" spellcheck="false" placeholder="模型名称" />
         <div class="button-row">
           <button id="testKeyBtn" class="ghost-btn" type="button">测试连接</button>
         </div>
         <div id="keyTestResult" class="hint"></div>
         <p class="hint dim">
-          模型固定为 deepseek-v4-flash（非思考模式）。密钥只保存在本机 Chrome 存储中。
+          预设服务商只需填 API Key，接口地址和模型已按官方默认值预填、可按需覆盖；自定义端点需三项都填。密钥只保存在本机 Chrome 存储中。
         </p>
       </section>
 
@@ -53,6 +59,6 @@
         <span id="savedHint" class="hint ok hidden">已保存 ✓</span>
       </div>
     </div>
-    <script src="options.js"></script>
+    <script type="module" src="options.js"></script>
   </body>
 </html>
