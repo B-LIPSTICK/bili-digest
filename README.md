@@ -73,7 +73,8 @@ B站视频页 (content.js)
 说明：
 
 - B站字幕接口返回 `subtitle_url`，指向一个字幕 JSON 文件，结构为 `{ body: [{ from, to, content }] }`，`from/to` 单位是秒；
-- B站网页端接口需要 WBI 签名（`w_rid` + `wts`），本项目的签名实现有单元测试覆盖；
+- 字幕轨道的主来源是 `x/player/wbi/v2`（带 `aid+cid`，与播放页一致），失败时回退 `x/player/v2`；两者都失败才用 WBI 签名（`w_rid` + `wts`）兜底，签名实现有单元测试覆盖；
+- 请求 B站接口时显式携带浏览器头、`zh-CN` 语言头和 `https://www.bilibili.com/` 的 Referer，避免被风控拦截；
 - 字幕、概览、翻译都会缓存在本机 `chrome.storage.local`，重复观看不重复计费。
 
 ## 数据与隐私
@@ -85,6 +86,20 @@ B站视频页 (content.js)
 ## 费用
 
 字幕提取免费。AI 功能按 DeepSeek 官方定价计费，翻译只在你切换到译文视图时发生，且结果会缓存。一个 20 分钟的视频全文翻译通常只需几分钱人民币量级，具体以 [DeepSeek 官方定价页](https://api-docs.deepseek.com/quick_start/pricing) 为准。
+
+## 字幕提取不出来？
+
+1. 确认 Chrome 里 `bilibili.com` 处于**登录状态**，然后刷新视频页；
+2. 确认这个视频**本身有字幕**（CC 字幕或 AI 字幕）。没有字幕的视频无法提取，这是 B站的数据限制；
+3. 在项目目录运行自检脚本，能区分「接口不通」和「视频无字幕」：
+
+   ```bash
+   npm run verify-bili -- BV1xxxxxxxx
+   # 带上登录态完整验证（SESSDATA 从浏览器开发者工具 Cookie 里复制，只在本机进程内使用）
+   $env:BILI_SESSDATA="你的SESSDATA"; npm run verify-bili -- BV1xxxxxxxx
+   ```
+
+   PowerShell 用 `$env:BILI_SESSDATA=...`，macOS/Linux 用 `BILI_SESSDATA=... npm run verify-bili -- BV1xxxxxxxx`。不要把 SESSDATA 贴进聊天或公开仓库。
 
 ## 免责声明
 

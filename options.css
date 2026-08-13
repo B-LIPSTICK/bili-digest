@@ -1,16 +1,17 @@
 :root {
-  --bg: #0b1220;
-  --panel: #131f35;
-  --line: #26385a;
-  --text: #e9f1fc;
-  --text-soft: #b9c8de;
-  --muted: #7f93b3;
-  --cyan: #4fd2ff;
-  --cyan-deep: #1899d6;
-  --amber: #ffc15e;
-  --danger: #ff8a8a;
-  --ok: #66d99a;
-  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --border: #e7e2d8;
+  --border-strong: #d8d1c4;
+  --text: #24221d;
+  --text-secondary: #63605a;
+  --muted: #98928a;
+  --accent: #3d7395;
+  --accent-hover: #2f5f7d;
+  --danger: #b8543f;
+  --ok: #4f7d4d;
+  --font-body: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
 * {
@@ -20,9 +21,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(100% 50% at 90% -5%, rgba(79, 210, 255, 0.12), transparent 55%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 14px;
@@ -39,60 +38,59 @@ body {
 .page-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 28px;
+  gap: 10px;
+  margin-bottom: 26px;
 }
 
 .page-head h1 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 21px;
+  font-weight: 600;
 }
 
 .brand-mark {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #4fd2ff, #ff6f9f);
-  transform: rotate(45deg);
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--accent);
 }
 
 .group {
-  margin-bottom: 28px;
-  padding: 20px;
-  border: 1px solid #1d2c49;
-  border-radius: 14px;
-  background: rgba(19, 31, 53, 0.55);
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
 }
 
 .group h2 {
-  margin: 0 0 14px;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  color: var(--amber);
-  text-transform: uppercase;
+  margin: 0 0 13px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .field-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   font-size: 13px;
-  color: var(--text-soft);
+  color: var(--text-secondary);
 }
 
 .key-row {
   display: flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 input[type="password"],
 input[type="text"],
 select {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(11, 18, 32, 0.7);
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 13px;
@@ -101,16 +99,16 @@ select {
 
 input:focus,
 select:focus {
-  border-color: var(--cyan);
+  border-color: var(--accent);
 }
 
 .icon-btn {
   width: 38px;
   flex: 0 0 38px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(24, 39, 66, 0.5);
-  color: var(--text-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -118,34 +116,38 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 14px;
+  margin-top: 13px;
 }
 
 .primary-btn {
-  padding: 9px 20px;
+  padding: 8px 20px;
   border: none;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--cyan), var(--cyan-deep));
-  color: #04121d;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
+.primary-btn:hover {
+  background: var(--accent-hover);
+}
+
 .ghost-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(24, 39, 66, 0.5);
-  color: var(--text-soft);
+  padding: 7px 15px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
 }
 
 .hint {
-  margin: 10px 0 0;
+  margin: 9px 0 0;
   font-size: 12px;
-  color: var(--text-soft);
+  color: var(--text-secondary);
   line-height: 1.65;
 }
 

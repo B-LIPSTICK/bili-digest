@@ -207,7 +207,11 @@ async function loadTranscript() {
   transcriptStatusEl.className = "status-line";
 
   try {
-    const result = await send("fetchTranscript", { bvid, cid });
+    const result = await send("fetchTranscript", {
+      bvid,
+      cid,
+      aid: state.video.aid,
+    });
     state.segments = result.segments || [];
     state.translations = [];
 
@@ -216,8 +220,10 @@ async function loadTranscript() {
         segmentsEl,
         "🔇",
         [
-          "该视频没有可用的字幕",
-          "B站部分视频没有字幕；确认视频页已登录可提高命中率",
+          result.tracks?.length
+            ? "字幕文件为空"
+            : "没有找到字幕轨道",
+          "请确认：已在 bilibili.com 登录，且这个视频本身有字幕",
         ],
       );
       transcriptStatusEl.textContent = "";
@@ -251,7 +257,6 @@ function renderSegments() {
     if (state.mode === "translated" && !state.translations[index]) {
       row.classList.add("tr-empty");
     }
-    row.style.animationDelay = `${Math.min(index * 10, 220)}ms`;
 
     const translation =
       state.mode === "original"
@@ -408,8 +413,8 @@ function renderOverview() {
   if (state.overview.summary) {
     const summary = document.createElement("div");
     summary.className = "summary-card";
-    summary.innerHTML = `
-      <p class="card-label">Summary 内容概要</p>
+      summary.innerHTML = `
+      <p class="card-label">内容概要</p>
       <p class="summary-text">${escapeHtml(state.overview.summary)}</p>
     `;
     fragment.appendChild(summary);
@@ -419,7 +424,7 @@ function renderOverview() {
     const section = document.createElement("div");
     const label = document.createElement("p");
     label.className = "card-label";
-    label.textContent = "Chapters 章节";
+    label.textContent = "章节";
     section.appendChild(label);
     for (const chapter of state.overview.chapters) {
       const card = document.createElement("div");
@@ -438,7 +443,7 @@ function renderOverview() {
     const section = document.createElement("div");
     const label = document.createElement("p");
     label.className = "card-label";
-    label.textContent = "Key Points 要点";
+    label.textContent = "要点";
     section.appendChild(label);
     const list = document.createElement("ul");
     list.className = "keypoints";

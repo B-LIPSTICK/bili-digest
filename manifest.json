@@ -8,7 +8,7 @@
   "host_permissions": [
     "https://www.bilibili.com/*",
     "https://api.bilibili.com/*",
-    "https://aisubtitle.hdslb.com/*",
+    "https://*.hdslb.com/*",
     "https://api.deepseek.com/*"
   ],
   "action": {

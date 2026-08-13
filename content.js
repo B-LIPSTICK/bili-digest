@@ -35,6 +35,11 @@ function getCid() {
   return Number(cid) || 0;
 }
 
+function getAid() {
+  const aid = window.__INITIAL_STATE__?.aid ?? window.__INITIAL_STATE__?.videoData?.aid;
+  return Number(aid) || 0;
+}
+
 function getVideoContext() {
   const videoData = window.__INITIAL_STATE__?.videoData;
   const video = document.querySelector("video");
@@ -56,6 +61,7 @@ function getVideoContext() {
   return {
     bvid: getBvid(),
     cid: getCid(),
+    aid: getAid(),
     title,
     author,
     currentTime: video ? Math.floor(video.currentTime) : 0,

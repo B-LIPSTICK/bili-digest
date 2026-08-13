@@ -53,8 +53,29 @@ async function getSettings() {
 // B站 HTTP 与 WBI 签名
 // ============================================================
 
+/**
+ * B站请求的通用配置。参考已在生产环境长期工作的
+ * Bilibili-Obsidian-Clipper：B站对缺失 Referer / 无浏览器头
+ * 的请求会触发风控，这里显式补上浏览器头、语言头和来源页。
+ */
+function buildBiliRequestOptions() {
+  return {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json, text/plain, */*",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    referrer: "https://www.bilibili.com/",
+    referrerPolicy: "strict-origin-when-cross-origin",
+  };
+}
+
 async function fetchJson(url, { skipCodeCheck = false } = {}) {
-  const response = await fetch(url, { credentials: "include" });
+  const response = await fetch(url, buildBiliRequestOptions());
   if (!response.ok) {
     throw new Error(`B站接口请求失败（HTTP ${response.status}）`);
   }
@@ -143,15 +164,46 @@ async function handleGetVideoInfo(bvid) {
   };
 }
 
-async function fetchTranscriptFromServer(bvid, cid) {
+async function fetchTranscriptFromServer(bvid, cid, aid = "") {
   if (!bvid) throw new Error("未检测到视频 BV 号");
-  if (!cid) {
+  if (!aid || !cid) {
     const info = await handleGetVideoInfo(bvid);
-    cid = info.cid;
+    aid = String(info.aid || "");
+    cid = cid || info.cid;
   }
 
-  const player = await signedGet("/x/player/wbi/v2", { bvid, cid });
-  const tracks = player?.data?.subtitle?.subtitles || [];
+  // 与 Clipper 相同的主/备来源策略：
+  // 1. 主来源 player/wbi/v2，优先带 aid（B站实际播放页用的就是 aid+cid）；
+  // 2. 主来源请求失败时回退 player/v2；
+  // 3. 两个都不行再退回带 WBI 签名的 wbi/v2。
+  // 主来源成功但字幕为空 = 确实没有字幕，不再跨源兜底。
+  const primaryUrl =
+    "https://api.bilibili.com/x/player/wbi/v2" +
+    `?aid=${encodeURIComponent(aid)}` +
+    `&cid=${encodeURIComponent(String(cid))}` +
+    `&bvid=${encodeURIComponent(bvid)}`;
+  const fallbackUrl =
+    "https://api.bilibili.com/x/player/v2" +
+    `?bvid=${encodeURIComponent(bvid)}` +
+    `&cid=${encodeURIComponent(String(cid))}` +
+    (aid ? `&aid=${encodeURIComponent(aid)}` : "");
+
+  let playerData;
+  try {
+    playerData = (await fetchJson(primaryUrl)).data;
+  } catch (primaryError) {
+    debugLog("主来源失败，回退 player/v2", primaryError);
+    try {
+      playerData = (await fetchJson(fallbackUrl)).data;
+    } catch (fallbackError) {
+      debugLog("player/v2 也失败，改用 WBI 签名请求", fallbackError);
+      const params = { bvid, cid };
+      if (aid) params.aid = aid;
+      playerData = (await signedGet("/x/player/wbi/v2", params)).data;
+    }
+  }
+
+  const tracks = playerData?.subtitle?.subtitles || [];
   if (tracks.length === 0) {
     return { bvid, cid, tracks: [], track: null, segments: [] };
   }
@@ -167,13 +219,13 @@ async function fetchTranscriptFromServer(bvid, cid) {
   return { bvid, cid, tracks, track, segments };
 }
 
-async function handleFetchTranscript({ bvid, cid }) {
+async function handleFetchTranscript({ bvid, cid, aid }) {
   const key = transcriptKey(bvid, cid);
   const cached = await store.get(key, null);
   if (cached && Date.now() - cached.fetchedAt < TRANSCRIPT_CACHE_TTL_MS) {
     return cached;
   }
-  const data = await fetchTranscriptFromServer(bvid, cid);
+  const data = await fetchTranscriptFromServer(bvid, cid, aid);
   const record = { ...data, fetchedAt: Date.now() };
   await store.set(key, record);
   return record;
@@ -436,7 +488,11 @@ async function route(message, sender) {
     case "getVideoInfo":
       return { info: await handleGetVideoInfo(message.bvid) };
     case "fetchTranscript":
-      return await handleFetchTranscript({ bvid: message.bvid, cid: message.cid });
+      return await handleFetchTranscript({
+        bvid: message.bvid,
+        cid: message.cid,
+        aid: message.aid,
+      });
     case "translate":
       return await handleTranslate({
         bvid: message.bvid,
