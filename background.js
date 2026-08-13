@@ -179,6 +179,7 @@ async function handleGetVideoInfo(bvid) {
     title: data.title,
     desc: data.desc || "",
     author: data.owner?.name || "",
+    authorMid: Number(data.owner?.mid) || 0,
     duration: data.duration,
     cid: data.cid,
     pages: Array.isArray(data.pages)

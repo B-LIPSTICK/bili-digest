@@ -190,12 +190,15 @@ function updateHeader() {
     if (state.video.authorMid) {
       author.title = "打开作者主页";
       author.addEventListener("click", () => {
+        const url = `https://space.bilibili.com/${state.video.authorMid}`;
         chrome.tabs
-          .create({
-            url: `https://space.bilibili.com/${state.video.authorMid}`,
-          })
-          .catch(() => {});
+          .create({ url })
+          .catch(() => {
+            window.open(url, "_blank", "noopener");
+          });
       });
+    } else {
+      author.title = "未取到作者主页链接";
     }
     videoMetaEl.appendChild(author);
   }
@@ -252,13 +255,34 @@ async function detectVideo() {
       state.chatMessages = [];
       state.chatLoaded = false;
       updateHeader();
+      ensureAuthorMid();
       await loadTranscript();
     } else {
       state.video = context;
       updateHeader();
+      ensureAuthorMid();
     }
   } catch {
     // 暂时连不上视频页（例如在非 B站页签），静默等待下一轮轮询
+  }
+}
+
+/**
+ * 内容脚本拿不到 UP 的 mid 时，用后台的视频信息接口补一次。
+ * 成功后重新渲染头部，让作者名变成可点击。
+ */
+async function ensureAuthorMid() {
+  const bvid = state.video?.bvid;
+  if (!bvid || state.video.authorMid) return;
+  try {
+    const info = await send("getVideoInfo", { bvid });
+    const mid = Number(info.info?.authorMid) || 0;
+    if (mid && state.video?.bvid === bvid) {
+      state.video.authorMid = mid;
+      updateHeader();
+    }
+  } catch {
+    // 拿不到就保持纯文本，不影响其它功能
   }
 }
 
