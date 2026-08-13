@@ -13,9 +13,9 @@
   --ok: #5a7d5a;
   --danger: #b4553f;
 
-  --font-display: "Stack Sans Headline", "Noto Sans SC", "Source Han Sans SC",
-    "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-body: "Stack Sans Text", "Noto Sans SC", "PingFang SC",
+  --font-display: "Stack Sans Headline", "MiSans", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-body: "Stack Sans Text", "MiSans", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 
   --radius-sm: 10px;

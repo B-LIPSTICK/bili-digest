@@ -21,6 +21,7 @@ $items = @(
   "lib",
   "prompts",
   "icons",
+  "fonts",
   "README.md",
   "LICENSE",
   "PRIVACY.md"

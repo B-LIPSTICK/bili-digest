@@ -22,9 +22,9 @@
   --ok: #5a7d5a;
   --danger: #b4553f;
 
-  --font-display: "Stack Sans Headline", "Noto Sans SC", "Source Han Sans SC",
-    "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-body: "Stack Sans Text", "Noto Sans SC", "PingFang SC",
+  --font-display: "Stack Sans Headline", "MiSans", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-body: "Stack Sans Text", "MiSans", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: "Cascadia Code", "SF Mono", Consolas, ui-monospace, monospace;
 
@@ -130,10 +130,10 @@ body::after {
 .video-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.018em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -543,6 +543,7 @@ button {
   margin: 0;
   font-family: var(--font-display);
   font-size: 14px;
+  font-weight: 500;
   line-height: 1.75;
 }
 
@@ -626,6 +627,7 @@ button {
   margin: 0;
   font-family: var(--font-display);
   font-size: 13.5px;
+  font-weight: 500;
   line-height: 1.75;
 }
 
