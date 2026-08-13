@@ -22,8 +22,6 @@ let lastUrl = location.href;
 let updateTimer = null;
 let buttonAnchorKey = "";
 let buttonShowTimer = null;
-let noteAnchorKey = "";
-let noteShowTimer = null;
 
 // ============================================================
 // 视频上下文
@@ -297,7 +295,7 @@ function ensureNoteButtonHost() {
   noteButtonHost = document.createElement("div");
   noteButtonHost.id = "bili-digest-note-button-host";
   noteButtonHost.style.cssText =
-    "position: fixed; z-index: 9998; display: none;";
+    "position: fixed; top: 80px; right: 16px; z-index: 9998; display: none;";
 
   const button = document.createElement("button");
   button.id = "bili-digest-note-button";
@@ -338,65 +336,14 @@ function ensureNoteButtonHost() {
   return noteButtonHost;
 }
 
-/**
- * 找「分享」按钮作为锚点。分享是操作栏右组里「更多」前一个元素。
- */
-function findShareAnchor() {
-  const group = document.querySelector(".video-toolbar-right");
-  if (!group) return null;
-  const visibleChildren = Array.from(group.children).filter((element) => {
-    const rect = element.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  });
-  const share = visibleChildren[visibleChildren.length - 2];
-  const element = share || group;
-  const rect = element.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return null;
-  return { rect };
-}
-
-function positionNoteButton(host, anchor) {
-  const button = host.firstElementChild;
-  const width = button.offsetWidth || 90;
-  const height = button.offsetHeight || 30;
-  const top = anchor.rect.top + (anchor.rect.height - height) / 2;
-  const left = Math.min(anchor.rect.right + 10, window.innerWidth - width - 12);
-  host.style.top = `${Math.min(Math.max(top, 64), window.innerHeight - height - 8)}px`;
-  host.style.left = `${Math.max(8, left)}px`;
-  host.style.display = "block";
-}
-
 function updateNoteButton() {
-  if (!getBvid()) {
-    noteAnchorKey = "";
-    if (noteShowTimer) clearTimeout(noteShowTimer);
+  const video = document.querySelector("video");
+  const visible = Boolean(getBvid() && video);
+  if (!visible) {
     if (noteButtonHost) noteButtonHost.style.display = "none";
     return;
   }
-
-  const anchor = findShareAnchor();
-  if (!anchor || anchor.rect.bottom < 64) {
-    noteAnchorKey = "";
-    if (noteShowTimer) clearTimeout(noteShowTimer);
-    if (noteButtonHost) noteButtonHost.style.display = "none";
-    return;
-  }
-
-  const host = ensureNoteButtonHost();
-  const key = `${Math.round(anchor.rect.left)}:${Math.round(anchor.rect.top)}:${Math.round(anchor.rect.right)}`;
-  if (host.style.display === "none") {
-    // 和精读按钮一样，等位置稳定再出现，避免闪跳
-    if (key !== noteAnchorKey) {
-      noteAnchorKey = key;
-      if (noteShowTimer) clearTimeout(noteShowTimer);
-      noteShowTimer = setTimeout(() => {
-        noteShowTimer = null;
-        updateNoteButton();
-      }, 800);
-      return;
-    }
-  }
-  positionNoteButton(host, anchor);
+  ensureNoteButtonHost().style.display = "block";
 }
 
 async function captureCurrentNote() {
