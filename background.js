@@ -24,6 +24,7 @@ import {
   requestAiCompletion,
   parseLooseJson,
 } from "./lib/ai.js";
+import { buildNoteContext, segmentsToText } from "./lib/note-context.js";
 
 const DEBUG = false;
 const TRANSLATE_BATCH_SIZE = 3;
@@ -202,6 +203,7 @@ async function handleGetVideoInfo(bvid) {
     bvid,
     aid: data.aid,
     title: data.title,
+    desc: data.desc || "",
     author: data.owner?.name || "",
     duration: data.duration,
     cid: data.cid,
@@ -505,9 +507,76 @@ async function handleSaveNote({ videoId, timestamp, videoTitle, author, text }) 
   return { success: true, note };
 }
 
+async function handleCaptureNote({ bvid, cid, aid, seconds, videoTitle, author }) {
+  if (!bvid) throw new Error("未检测到视频");
+  const time = Math.max(0, Number(seconds) || 0);
+
+  let record = await store.get(transcriptKey(bvid, cid), null);
+  if (!record?.segments?.length) {
+    record = await fetchTranscriptFromServer(bvid, cid, aid);
+  }
+  const segments = record?.segments || [];
+  if (!segments.length) {
+    throw new Error("该视频没有字幕，无法自动记笔记");
+  }
+
+  const { before, target, after, fullContext } = buildNoteContext(segments, time);
+  let text = "";
+  const settings = await getSettings();
+  const config = normalizeProviderConfig(settings);
+  if (config.apiKey && target) {
+    try {
+      const prompt = await renderPrompt("note-capture.md", {
+        video_title: videoTitle || "",
+        before: segmentsToText(before) || "（无）",
+        target: target.content || "",
+        after: segmentsToText(after) || "（无）",
+        full_context: segmentsToText(fullContext),
+      });
+      const content = await requestAiCompletion(
+        config,
+        [{ role: "user", content: prompt }],
+        { json: true },
+      );
+      text = String(parseLooseJson(content)?.text ?? "").trim();
+    } catch (error) {
+      debugLog("AI 清理当前句失败，回退原文拼接", error);
+    }
+  }
+  if (!text) {
+    text = segmentsToText([...before, target, ...after]);
+  }
+  if (!text) {
+    throw new Error("这个时间点附近没有字幕内容");
+  }
+
+  const { note } = await handleSaveNote({
+    videoId: bvid,
+    timestamp: time,
+    videoTitle,
+    author,
+    text: text.slice(0, 3000),
+  });
+  // 通知侧边栏刷新（侧边栏未打开时忽略失败）
+  chrome.runtime.sendMessage({ action: "noteSaved", note }).catch(() => {});
+  return { note };
+}
+
 async function handleGetNotes(videoId) {
   if (!videoId) return [];
   return store.get(notesKey(videoId), []);
+}
+
+async function handleGetAllNotes() {
+  const all = await chrome.storage.local.get(null);
+  const notes = [];
+  for (const [key, value] of Object.entries(all)) {
+    if (key.startsWith("notes:") && Array.isArray(value)) {
+      notes.push(...value);
+    }
+  }
+  notes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return { notes: notes.slice(0, 200) };
 }
 
 async function handleDeleteNote({ videoId, noteId }) {
@@ -610,8 +679,12 @@ async function route(message, sender) {
       return await handlePolishNote({ text: message.text });
     case "saveNote":
       return await handleSaveNote(message);
+    case "captureNote":
+      return await handleCaptureNote(message);
     case "getNotes":
       return { notes: await handleGetNotes(message.videoId) };
+    case "getAllNotes":
+      return await handleGetAllNotes();
     case "deleteNote":
       return {
         notes: await handleDeleteNote({

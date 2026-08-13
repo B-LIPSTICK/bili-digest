@@ -68,3 +68,13 @@ test("buildMarkdown 输出带时间戳的笔记", () => {
   assert.match(markdown, /## 笔记/);
   assert.match(markdown, /- \[02:05\] 这里的推导很关键/);
 });
+
+test("buildMarkdown 输出视频简介", () => {
+  const markdown = buildMarkdown({
+    video: { bvid: "BV1xx411c7mD", title: "测试视频" },
+    description: "这是视频简介",
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /## 视频简介/);
+  assert.match(markdown, /这是视频简介/);
+});

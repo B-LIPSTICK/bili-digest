@@ -15,7 +15,7 @@ Bili Digest 以「本地优先、最小数据外发」为原则。
 | --- | --- | --- |
 | 视频 BV 号、cid | `api.bilibili.com` | 获取视频信息与字幕轨道列表 |
 | 字幕文件请求 | `aisubtitle.hdslb.com` | 下载字幕 JSON |
-| 字幕文本 / 你选中的文本 / 笔记草稿 | 你在设置中选择的 AI 服务商（`api.deepseek.com` / `api.openai.com` / `api.moonshot.cn` / `open.bigmodel.cn` / `dashscope.aliyuncs.com`，或自定义端点） | 翻译、概览、逐句解释、笔记润色 |
+| 字幕文本 / 你选中的文本 / 笔记草稿 / 自动记笔记时的当前句上下文 | 你在设置中选择的 AI 服务商（`api.deepseek.com` / `api.openai.com` / `api.moonshot.cn` / `open.bigmodel.cn` / `dashscope.aliyuncs.com`，或自定义端点） | 翻译、概览、逐句解释、笔记润色、自动记笔记 |
 
 扩展直接调用上述服务，不经过任何第三方中转服务器。
 

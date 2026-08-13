@@ -25,6 +25,7 @@ const state = {
   },
   settingsLoaded: false,
   notes: [],
+  notesScope: "current",
   noteSeconds: 0,
   currentTab: "transcript",
 };
@@ -41,12 +42,14 @@ const segmentsEl = $("segments");
 const transcriptStatusEl = $("transcriptStatus");
 const translationTrackEl = $("translationTrack");
 const translationFillEl = $("translationFill");
+const copyTranscriptBtn = $("copyTranscriptBtn");
 const exportBtn = $("exportBtn");
 const refreshBtn = $("refreshBtn");
 const generateOverviewBtn = $("generateOverviewBtn");
 const regenerateOverviewBtn = $("regenerateOverviewBtn");
 const overviewStatusEl = $("overviewStatus");
 const overviewContentEl = $("overviewContent");
+const noteComposerEl = $("noteComposer");
 const noteTextEl = $("noteText");
 const noteTimeChipEl = $("noteTimeChip");
 const polishNoteBtn = $("polishNoteBtn");
@@ -392,8 +395,17 @@ async function exportMarkdown() {
       // 拿不到就用内存里的，仍可导出其余内容
     }
 
+    let description = "";
+    try {
+      const info = await send("getVideoInfo", { bvid: state.video.bvid });
+      description = info.info?.desc || "";
+    } catch {
+      // 简介拿不到不影响导出其余内容
+    }
+
     const markdown = buildMarkdown({
       video: state.video,
+      description,
       overview: state.overview,
       segments: state.segments,
       translations: state.translations,
@@ -414,6 +426,36 @@ async function exportMarkdown() {
     showToast("已导出 Markdown");
   } catch (error) {
     showToast(`导出失败：${error.message}`, "error");
+  }
+}
+
+async function copyTranscript() {
+  if (!state.segments.length) {
+    showToast("没有字幕可复制", "error");
+    return;
+  }
+  const lines = state.segments.map((segment, index) => {
+    const time = secondsToTimestamp(segment.from);
+    if (state.mode === "translated") {
+      return `[${time}] ${state.translations[index] || "…"}`;
+    }
+    if (state.mode === "bilingual") {
+      const translation = state.translations[index];
+      return translation
+        ? `[${time}] ${segment.content}\n${" ".repeat(time.length + 3)}${translation}`
+        : `[${time}] ${segment.content}`;
+    }
+    return `[${time}] ${segment.content}`;
+  });
+  try {
+    await navigator.clipboard.writeText(lines.join("\n"));
+    copyTranscriptBtn.textContent = "✓";
+    setTimeout(() => {
+      copyTranscriptBtn.textContent = "⧉";
+    }, 1200);
+    showToast("已复制字幕");
+  } catch {
+    showToast("复制失败，请手动选择复制", "error");
   }
 }
 
@@ -577,13 +619,18 @@ async function saveQuoteAsNote(quote) {
 // ============================================================
 
 async function refreshNotes() {
-  if (!state.video?.bvid) {
-    renderEmpty(notesListEl, "📝", ["先打开一个 B站视频"]);
-    return;
-  }
   try {
-    const result = await send("getNotes", { videoId: state.video.bvid });
-    state.notes = result.notes || [];
+    if (state.notesScope === "all") {
+      const result = await send("getAllNotes");
+      state.notes = result.notes || [];
+    } else {
+      if (!state.video?.bvid) {
+        renderEmpty(notesListEl, "📝", ["先打开一个 B站视频"]);
+        return;
+      }
+      const result = await send("getNotes", { videoId: state.video.bvid });
+      state.notes = result.notes || [];
+    }
     renderNotes();
   } catch (error) {
     notesStatusEl.className = "status-line error";
@@ -594,33 +641,101 @@ async function refreshNotes() {
 function renderNotes() {
   notesListEl.replaceChildren();
   if (state.notes.length === 0) {
-    renderEmpty(notesListEl, "📝", ["还没有笔记", "在上方写下想法，保存后会带上时间戳"]);
+    renderEmpty(
+      notesListEl,
+      "📝",
+      state.notesScope === "all"
+        ? ["还没有任何视频的笔记", "看视频时点「记笔记」或按 N，AI 会帮你整理好当前句"]
+        : ["还没有笔记", "看视频时点「记笔记」或按 N，AI 会帮你整理好当前句"],
+    );
     return;
   }
 
+  const list =
+    state.notesScope === "all"
+      ? state.notes
+      : [...state.notes].sort((a, b) => a.timestamp - b.timestamp);
   const fragment = document.createDocumentFragment();
-  for (const note of [...state.notes].sort((a, b) => a.timestamp - b.timestamp)) {
+  for (const note of list) {
     const card = document.createElement("div");
     card.className = "note-card";
     card.innerHTML = `
       <div class="note-head">
-        <button class="note-time" data-seconds="${note.timestamp}">${secondsToTimestamp(note.timestamp)}</button>
+        <button class="note-time" data-seconds="${Number(note.timestamp) || 0}">${secondsToTimestamp(note.timestamp)}</button>
+        ${state.notesScope === "all" ? `<span class="note-video-title">${escapeHtml(note.videoTitle || note.videoId || "")}</span>` : ""}
+        <button class="note-delete" title="删除笔记">✕</button>
       </div>
       <p class="note-text">${escapeHtml(note.text)}</p>
-      <button class="note-delete" title="删除笔记">✕</button>
+      <div class="note-actions">
+        <button class="note-copy-text" type="button">复制文本</button>
+        <button class="note-copy-link" type="button">复制时间戳</button>
+        <button class="note-play" type="button">播放</button>
+      </div>
     `;
-    card.querySelector(".note-time").addEventListener("click", () => seekTo(note.timestamp));
+    card.querySelector(".note-time").addEventListener("click", () => playNote(note));
     card.querySelector(".note-delete").addEventListener("click", async () => {
       try {
-        await send("deleteNote", { videoId: state.video.bvid, noteId: note.id });
+        await send("deleteNote", { videoId: note.videoId, noteId: note.id });
         await refreshNotes();
       } catch (error) {
         showToast(error.message, "error");
       }
     });
+    card
+      .querySelector(".note-copy-text")
+      .addEventListener("click", () =>
+        copyWithFeedback(card.querySelector(".note-copy-text"), note.text),
+      );
+    card
+      .querySelector(".note-copy-link")
+      .addEventListener("click", () =>
+        copyWithFeedback(
+          card.querySelector(".note-copy-link"),
+          note.url ||
+            `https://www.bilibili.com/video/${note.videoId}?t=${Number(note.timestamp) || 0}`,
+        ),
+      );
+    card.querySelector(".note-play").addEventListener("click", () => playNote(note));
     fragment.appendChild(card);
   }
   notesListEl.appendChild(fragment);
+}
+
+async function playNote(note) {
+  const seconds = Number(note.timestamp) || 0;
+  if (state.video?.bvid === note.videoId) {
+    seekTo(seconds);
+    return;
+  }
+  try {
+    await chrome.tabs.create({
+      url: note.url || `https://www.bilibili.com/video/${note.videoId}?t=${seconds}`,
+    });
+  } catch (error) {
+    showToast(error.message, "error");
+  }
+}
+
+async function copyWithFeedback(button, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const original = button.textContent;
+    button.textContent = "已复制";
+    setTimeout(() => {
+      if (button.isConnected) button.textContent = original;
+    }, 1200);
+  } catch {
+    showToast("复制失败，请手动复制", "error");
+  }
+}
+
+function switchNotesScope(scope) {
+  state.notesScope = scope === "all" ? "all" : "current";
+  document.querySelectorAll(".notes-scope .mode").forEach((button) => {
+    button.classList.toggle("active", button.dataset.scope === state.notesScope);
+  });
+  noteComposerEl.classList.toggle("hidden", state.notesScope !== "current");
+  refreshNotes();
 }
 
 async function captureCurrentSeconds() {
@@ -832,6 +947,7 @@ refreshBtn.addEventListener("click", () => {
 });
 
 exportBtn.addEventListener("click", exportMarkdown);
+copyTranscriptBtn.addEventListener("click", copyTranscript);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));
 regenerateOverviewBtn.addEventListener("click", () => loadOverview({ force: true }));
 polishNoteBtn.addEventListener("click", polishCurrentNote);
@@ -839,6 +955,9 @@ saveNoteBtn.addEventListener("click", saveCurrentNote);
 saveSettingsBtn.addEventListener("click", saveSettings);
 testKeyBtn.addEventListener("click", testApiKey);
 targetLanguageSelect.addEventListener("change", updateCustomVisibility);
+document.querySelectorAll(".notes-scope .mode").forEach((button) => {
+  button.addEventListener("click", () => switchNotesScope(button.dataset.scope));
+});
 providerSelect.addEventListener("change", () => {
   readCurrentProviderDraft();
   fillProviderFields(providerSelect.value);
@@ -855,6 +974,10 @@ closeExplainBtn.addEventListener("click", () => {
 });
 
 chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === "noteSaved") {
+    if (state.currentTab === "notes") refreshNotes();
+    return;
+  }
   if (message.action !== "translationProgress") return;
   if (
     !state.video ||

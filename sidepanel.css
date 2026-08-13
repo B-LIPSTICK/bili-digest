@@ -649,6 +649,10 @@ button {
   margin-top: 12px;
 }
 
+.notes-scope {
+  margin-top: 12px;
+}
+
 .note-card {
   position: relative;
   padding: 10px 32px 10px 12px;
@@ -673,11 +677,42 @@ button {
   text-decoration: underline;
 }
 
+.note-video-title {
+  margin-left: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .note-text {
   margin: 0;
   font-size: 13px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.note-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.note-actions button {
+  padding: 2px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.note-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .note-delete {

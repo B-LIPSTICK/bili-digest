@@ -15,6 +15,9 @@ const debugLog = (...args) => {
 };
 
 let buttonHost = null;
+let noteButtonHost = null;
+let noteSaving = false;
+let noteKeyboardListenerAdded = false;
 let lastUrl = location.href;
 let updateTimer = null;
 
@@ -255,6 +258,122 @@ function scheduleUpdate(delay = 100) {
 }
 
 // ============================================================
+// 「记笔记」悬浮按钮 + N 快捷键
+//
+// 与「精读」按钮同理：挂在 body 下，不进入 B站 Vue 管理的 DOM。
+// 点击或按 N 时，把「刚才这句话」（当前时间往前 3 秒）交给后台，
+// 由 AI 清理口头禅后自动保存为带时间戳的笔记。
+// ============================================================
+
+function ensureNoteButtonHost() {
+  if (noteButtonHost?.isConnected) return noteButtonHost;
+  noteButtonHost = document.createElement("div");
+  noteButtonHost.id = "bili-digest-note-button-host";
+  noteButtonHost.style.cssText =
+    "position: fixed; top: 80px; right: 16px; z-index: 9998; display: none;";
+
+  const button = document.createElement("button");
+  button.id = "bili-digest-note-button";
+  button.type = "button";
+  button.title = "把刚才这句话记成笔记（快捷键 N）";
+  button.textContent = "记笔记";
+  button.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 15px;
+    background: #00aeec;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+    transition: background 0.15s ease;
+  `;
+  button.addEventListener("mouseenter", () => {
+    button.style.background = "#009bd4";
+  });
+  button.addEventListener("mouseleave", () => {
+    button.style.background = "#00aeec";
+  });
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    captureCurrentNote();
+  });
+
+  noteButtonHost.appendChild(button);
+  (document.body || document.documentElement).appendChild(noteButtonHost);
+  return noteButtonHost;
+}
+
+function updateNoteButton() {
+  const video = document.querySelector("video");
+  const visible = Boolean(getBvid() && video);
+  if (!visible) {
+    if (noteButtonHost) noteButtonHost.style.display = "none";
+    return;
+  }
+  ensureNoteButtonHost().style.display = "block";
+}
+
+async function captureCurrentNote() {
+  if (noteSaving) return;
+  const context = getVideoContext();
+  if (!context.bvid) return;
+
+  const video = document.querySelector("video");
+  // 用户反应过来再点按钮时，真正想记的是几秒前那句，往前回退 3 秒
+  const seconds = Math.max(0, Math.floor((video?.currentTime ?? 0)) - 3);
+
+  noteSaving = true;
+  const button = noteButtonHost?.firstElementChild;
+  const originalText = button?.textContent;
+  if (button) button.textContent = "保存中…";
+
+  try {
+    const result = await chrome.runtime.sendMessage({
+      action: "captureNote",
+      bvid: context.bvid,
+      cid: context.cid,
+      aid: context.aid,
+      seconds,
+      videoTitle: context.title,
+      author: context.author,
+    });
+    if (!result || result.success === false) {
+      throw new Error(result?.error || "保存失败");
+    }
+    showToast(`已记下笔记：${String(result.note?.text || "").slice(0, 42)}`);
+  } catch (error) {
+    showToast(`记笔记失败：${error.message}`, "error");
+  } finally {
+    noteSaving = false;
+    if (button) button.textContent = originalText;
+  }
+}
+
+function handleNoteKeyboardShortcut(event) {
+  if (event.key && event.key.toLowerCase() !== "n") return;
+  if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+  const active = document.activeElement;
+  if (
+    active &&
+    (active.tagName === "INPUT" ||
+      active.tagName === "TEXTAREA" ||
+      active.isContentEditable)
+  ) {
+    return;
+  }
+  event.preventDefault();
+  captureCurrentNote();
+}
+
+// ============================================================
 // SPA 导航监听（B站切视频不刷新页面）
 // ============================================================
 
@@ -273,6 +392,7 @@ function watchNavigation() {
   setInterval(() => {
     check();
     updateButton();
+    updateNoteButton();
   }, 1000);
 }
 
@@ -309,10 +429,15 @@ function showToast(text, kind = "info") {
 // ============================================================
 
 function init() {
+  if (!noteKeyboardListenerAdded) {
+    document.addEventListener("keydown", handleNoteKeyboardShortcut);
+    noteKeyboardListenerAdded = true;
+  }
   window.addEventListener("scroll", () => scheduleUpdate(100), { passive: true });
   window.addEventListener("resize", () => scheduleUpdate(100), { passive: true });
   watchNavigation();
   updateButton();
+  updateNoteButton();
 }
 
 if (document.readyState === "loading") {
