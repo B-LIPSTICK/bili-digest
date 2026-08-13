@@ -107,10 +107,11 @@ body::after {
 }
 
 .brand-mark {
-  width: 11px;
-  height: 11px;
-  border-radius: 4px;
-  background: var(--accent);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
 }
 
 .group {

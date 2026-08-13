@@ -132,10 +132,11 @@ body::after {
 }
 
 .brand-mark {
-  width: 10px;
-  height: 10px;
-  border-radius: 4px;
-  background: var(--accent);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
 }
 
 .brand-name {
