@@ -295,7 +295,7 @@ function ensureNoteButtonHost() {
   noteButtonHost = document.createElement("div");
   noteButtonHost.id = "bili-digest-note-button-host";
   noteButtonHost.style.cssText =
-    "position: fixed; top: 80px; right: 16px; z-index: 9998; display: none;";
+    "position: fixed; z-index: 9998; display: none;";
 
   const button = document.createElement("button");
   button.id = "bili-digest-note-button";
@@ -336,14 +336,48 @@ function ensureNoteButtonHost() {
   return noteButtonHost;
 }
 
-function updateNoteButton() {
+/**
+ * 找播放器容器作为锚点：优先 #bilibili-player，失败回退到 video 元素。
+ * 按钮放在播放器右下角，紧挨弹幕发送区。
+ */
+function findPlayerAnchor() {
+  const player = document.querySelector("#bilibili-player");
+  if (player) {
+    const rect = player.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return { rect };
+  }
   const video = document.querySelector("video");
-  const visible = Boolean(getBvid() && video);
-  if (!visible) {
+  if (video) {
+    const rect = video.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return { rect };
+  }
+  return null;
+}
+
+function updateNoteButton() {
+  if (!getBvid()) {
     if (noteButtonHost) noteButtonHost.style.display = "none";
     return;
   }
-  ensureNoteButtonHost().style.display = "block";
+
+  const anchor = findPlayerAnchor();
+  if (!anchor || anchor.rect.bottom < 64) {
+    if (noteButtonHost) noteButtonHost.style.display = "none";
+    return;
+  }
+
+  const host = ensureNoteButtonHost();
+  const button = host.firstElementChild;
+  const width = button.offsetWidth || 90;
+  const height = button.offsetHeight || 30;
+  const top = anchor.rect.bottom - height - 16;
+  const left = Math.min(
+    anchor.rect.right - width - 16,
+    window.innerWidth - width - 12,
+  );
+  host.style.top = `${Math.max(64, top)}px`;
+  host.style.left = `${Math.max(8, left)}px`;
+  host.style.display = "block";
 }
 
 async function captureCurrentNote() {
