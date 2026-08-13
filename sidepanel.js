@@ -8,6 +8,7 @@
  */
 
 import { AI_PROVIDERS } from "./lib/ai.js";
+import { buildMarkdown } from "./lib/export.js";
 
 const state = {
   video: null,
@@ -40,6 +41,7 @@ const segmentsEl = $("segments");
 const transcriptStatusEl = $("transcriptStatus");
 const translationTrackEl = $("translationTrack");
 const translationFillEl = $("translationFill");
+const exportBtn = $("exportBtn");
 const refreshBtn = $("refreshBtn");
 const generateOverviewBtn = $("generateOverviewBtn");
 const regenerateOverviewBtn = $("regenerateOverviewBtn");
@@ -47,6 +49,7 @@ const overviewStatusEl = $("overviewStatus");
 const overviewContentEl = $("overviewContent");
 const noteTextEl = $("noteText");
 const noteTimeChipEl = $("noteTimeChip");
+const polishNoteBtn = $("polishNoteBtn");
 const saveNoteBtn = $("saveNoteBtn");
 const notesStatusEl = $("notesStatus");
 const notesListEl = $("notesList");
@@ -374,6 +377,46 @@ async function seekTo(seconds) {
   }
 }
 
+async function exportMarkdown() {
+  if (!state.video?.bvid) {
+    showToast("先打开一个 B站视频", "error");
+    return;
+  }
+  try {
+    // 导出时重新取一次笔记，避免侧边栏里还没打开过笔记页导致漏导
+    let notes = state.notes;
+    try {
+      const result = await send("getNotes", { videoId: state.video.bvid });
+      notes = result.notes || [];
+    } catch {
+      // 拿不到就用内存里的，仍可导出其余内容
+    }
+
+    const markdown = buildMarkdown({
+      video: state.video,
+      overview: state.overview,
+      segments: state.segments,
+      translations: state.translations,
+      notes,
+    });
+    const rawName = (state.video.title || state.video.bvid || "bili-digest")
+      .replace(/[\\/:*?"<>|]/g, "_")
+      .slice(0, 60);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${rawName}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("已导出 Markdown");
+  } catch (error) {
+    showToast(`导出失败：${error.message}`, "error");
+  }
+}
+
 // ============================================================
 // 概览
 // ============================================================
@@ -466,7 +509,67 @@ function renderOverview() {
     fragment.appendChild(section);
   }
 
+  if (state.overview.keyQuotes?.length) {
+    const section = document.createElement("div");
+    const label = document.createElement("p");
+    label.className = "card-label";
+    label.textContent = "金句";
+    section.appendChild(label);
+    for (const quote of state.overview.keyQuotes) {
+      const card = document.createElement("div");
+      card.className = "quote-item";
+      card.innerHTML = `
+        <p class="quote-text">${escapeHtml(quote.text)}</p>
+        <div class="quote-meta">
+          <button class="quote-time" data-seconds="${Number(quote.time) || 0}">${secondsToTimestamp(quote.time)}</button>
+          <span class="quote-actions">
+            <button class="quote-copy-btn" type="button">复制</button>
+            <button class="quote-save-btn" type="button">存为笔记</button>
+          </span>
+        </div>
+      `;
+      card.querySelector(".quote-time").addEventListener("click", () =>
+        seekTo(quote.time),
+      );
+      card.querySelector(".quote-copy-btn").addEventListener("click", async (event) => {
+        try {
+          await navigator.clipboard.writeText(quote.text);
+          event.currentTarget.textContent = "已复制";
+          setTimeout(() => {
+            event.currentTarget.textContent = "复制";
+          }, 1200);
+        } catch {
+          showToast("复制失败，请手动选择文本", "error");
+        }
+      });
+      card.querySelector(".quote-save-btn").addEventListener("click", () =>
+        saveQuoteAsNote(quote),
+      );
+      section.appendChild(card);
+    }
+    fragment.appendChild(section);
+  }
+
   overviewContentEl.appendChild(fragment);
+}
+
+async function saveQuoteAsNote(quote) {
+  if (!state.video?.bvid) {
+    showToast("没有检测到视频", "error");
+    return;
+  }
+  try {
+    await send("saveNote", {
+      videoId: state.video.bvid,
+      timestamp: Number(quote.time) || 0,
+      videoTitle: state.video.title,
+      author: state.video.author,
+      text: quote.text,
+    });
+    showToast("金句已存为笔记");
+  } catch (error) {
+    showToast(error.message, "error");
+  }
 }
 
 // ============================================================
@@ -557,6 +660,26 @@ async function saveCurrentNote() {
     showToast(error.message, "error");
   } finally {
     saveNoteBtn.disabled = false;
+  }
+}
+
+async function polishCurrentNote() {
+  const draft = noteTextEl.value.trim();
+  if (!draft) {
+    showToast("先写点内容再润色", "error");
+    return;
+  }
+  polishNoteBtn.disabled = true;
+  polishNoteBtn.textContent = "润色中…";
+  try {
+    const result = await send("polishNote", { text: draft });
+    noteTextEl.value = String(result.text || "");
+    showToast("已润色，可以再改改");
+  } catch (error) {
+    showToast(`润色失败：${error.message}`, "error");
+  } finally {
+    polishNoteBtn.disabled = false;
+    polishNoteBtn.textContent = "AI 润色";
   }
 }
 
@@ -708,8 +831,10 @@ refreshBtn.addEventListener("click", () => {
   loadTranscript().finally(() => refreshBtn.classList.remove("spinning"));
 });
 
+exportBtn.addEventListener("click", exportMarkdown);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));
 regenerateOverviewBtn.addEventListener("click", () => loadOverview({ force: true }));
+polishNoteBtn.addEventListener("click", polishCurrentNote);
 saveNoteBtn.addEventListener("click", saveCurrentNote);
 saveSettingsBtn.addEventListener("click", saveSettings);
 testKeyBtn.addEventListener("click", testApiKey);

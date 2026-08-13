@@ -25,9 +25,11 @@ const REQUIRED_FILES = [
   "lib/wbi.js",
   "lib/subtitle.js",
   "lib/ai.js",
+  "lib/export.js",
   "prompts/translation.md",
   "prompts/analysis.md",
   "prompts/explain.md",
+  "prompts/polish.md",
   "icons/icon16.png",
   "icons/icon48.png",
   "icons/icon128.png",
@@ -43,6 +45,7 @@ const JS_FILES = [
   "lib/wbi.js",
   "lib/subtitle.js",
   "lib/ai.js",
+  "lib/export.js",
 ];
 
 function fail(message) {

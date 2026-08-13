@@ -423,6 +423,14 @@ async function handleGenerateOverview({ bvid, cid, segments, force = false }) {
     : Array.isArray(parsed.keyPoints)
       ? parsed.keyPoints
       : [];
+  const keyQuotes = Array.isArray(parsed.key_quotes)
+    ? parsed.key_quotes
+        .map((quote) => ({
+          text: String(quote?.text ?? "").trim(),
+          time: Number(quote?.time) || 0,
+        }))
+        .filter((quote) => quote.text)
+    : [];
 
   const overview = {
     summary: String(parsed.summary ?? "").trim(),
@@ -435,6 +443,7 @@ async function handleGenerateOverview({ bvid, cid, segments, force = false }) {
           .filter((chapter) => chapter.title)
       : [],
     keyPoints: keyPoints.map((point) => String(point).trim()).filter(Boolean),
+    keyQuotes,
   };
   await store.set(key, { ...overview, fetchedAt: Date.now() });
   return { ...overview, cached: false };
@@ -449,6 +458,24 @@ async function handleExplain({ text, context }) {
     { role: "user", content: prompt },
   ]);
   return { text: result };
+}
+
+async function handlePolishNote({ text }) {
+  if (!text) throw new Error("没有可润色的内容");
+  const settings = await getSettings();
+  const config = normalizeProviderConfig(settings);
+  const prompt = await renderPrompt("polish.md", { draft: text });
+  const content = await requestAiCompletion(
+    config,
+    [{ role: "user", content: prompt }],
+    { json: true },
+  );
+  const parsed = parseLooseJson(content);
+  const polished = String(parsed?.text ?? "").trim();
+  if (!polished) {
+    throw new Error("AI 没有返回润色结果");
+  }
+  return { text: polished };
 }
 
 // ============================================================
@@ -579,6 +606,8 @@ async function route(message, sender) {
       });
     case "explainSelection":
       return await handleExplain({ text: message.text, context: message.context });
+    case "polishNote":
+      return await handlePolishNote({ text: message.text });
     case "saveNote":
       return await handleSaveNote(message);
     case "getNotes":

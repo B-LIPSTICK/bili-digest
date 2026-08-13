@@ -197,6 +197,12 @@ body {
   margin-bottom: 12px;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ============ 按钮 ============ */
 
 button {
@@ -237,6 +243,11 @@ button {
 .ghost-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.ghost-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .icon-btn {
@@ -519,6 +530,69 @@ button {
   background: var(--highlight-strong);
 }
 
+/* ============ 金句 ============ */
+
+.quote-item {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--highlight-strong);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.quote-item + .quote-item {
+  margin-top: 7px;
+}
+
+.quote-text {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.quote-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.quote-time {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.quote-time:hover {
+  text-decoration: underline;
+}
+
+.quote-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.quote-actions button {
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.quote-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ============ 笔记 ============ */
 
 .note-composer {
@@ -551,6 +625,12 @@ button {
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.note-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chip {

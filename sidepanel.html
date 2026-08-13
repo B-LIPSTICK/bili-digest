@@ -32,7 +32,10 @@
             <button class="mode" data-mode="translated" role="tab">译文</button>
             <button class="mode" data-mode="bilingual" role="tab">双语</button>
           </div>
-          <button id="refreshBtn" class="icon-btn" title="重新加载字幕" aria-label="重新加载字幕">↻</button>
+          <div class="toolbar-actions">
+            <button id="exportBtn" class="icon-btn" title="导出 Markdown" aria-label="导出 Markdown">↓</button>
+            <button id="refreshBtn" class="icon-btn" title="重新加载字幕" aria-label="重新加载字幕">↻</button>
+          </div>
         </div>
         <div id="transcriptStatus" class="status-line"></div>
         <div id="translationTrack" class="progress-track hidden">
@@ -55,7 +58,10 @@
           <textarea id="noteText" rows="3" placeholder="记下此刻的想法，保存后会带上时间戳…"></textarea>
           <div class="note-composer-row">
             <span id="noteTimeChip" class="chip">--:--</span>
-            <button id="saveNoteBtn" class="primary-btn">保存笔记</button>
+            <div class="note-composer-actions">
+              <button id="polishNoteBtn" class="ghost-btn">AI 润色</button>
+              <button id="saveNoteBtn" class="primary-btn">保存笔记</button>
+            </div>
           </div>
         </div>
         <div id="notesStatus" class="status-line"></div>
