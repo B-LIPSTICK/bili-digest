@@ -3,7 +3,7 @@
  *
  * 运行在 B站视频页（bilibili.com/video/*）上，负责：
  * 1. 从页面读取视频上下文（BV 号、cid、标题、UP 主）；
- * 2. 在视频下方操作栏注入「精读」按钮，点击打开侧边栏；
+ * 2. 在视频标题右侧注入「精读」按钮，点击打开侧边栏；
  * 3. 响应侧边栏的时间戳跳转和当前播放时间查询；
  * 4. 显示笔记保存成功等轻量提示。
  */
@@ -146,7 +146,7 @@ function seekToTimestamp(seconds) {
 // 注意：B站整个页面（含顶部导航）由 Vue 服务端渲染并 hydration。
 // 按钮不能插进 B站自己管理的节点里，否则会产生 hydration 冲突，
 // 极端情况下会触发整页重渲染、顶部导航消失。这里改为把按钮挂在
-// body 下的独立宿主节点上，用 fixed 定位贴到视频操作栏旁边，
+// body 下的独立宿主节点上，用 fixed 定位到视频标题右侧，
 // B站的重渲染永远不会碰到它。
 // ============================================================
 
@@ -211,26 +211,19 @@ function ensureButtonHost() {
 }
 
 /**
- * 找一个可见的视频操作栏锚点。优先贴到右侧按钮组（投币/收藏/分享）左边，
- * 没有右侧组时退到整个操作栏的右端。
+ * 找视频标题作为锚点，把按钮放在标题右侧。
+ * 标题区布局稳定，不会像操作栏那样被晚加载的按钮挤动。
  */
-function findToolbarAnchor() {
-  const isVisible = (element) => {
+function findTitleAnchor() {
+  const selectors = ["h1.video-title", ".video-info h1", "#viewbox_report h1"];
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (!element) continue;
     const rect = element.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0 || rect.bottom <= 0) return false;
-    const style = window.getComputedStyle(element);
-    return style.display !== "none" && style.visibility !== "hidden";
-  };
-
-  const right = Array.from(document.querySelectorAll(".video-toolbar-right")).find(
-    isVisible,
-  );
-  if (right) return { kind: "right", rect: right.getBoundingClientRect() };
-
-  const container = Array.from(
-    document.querySelectorAll(".video-toolbar, .video-toolbar-container"),
-  ).find(isVisible);
-  if (container) return { kind: "container", rect: container.getBoundingClientRect() };
+    if (rect.width > 0 && rect.height > 0 && rect.bottom > 0) {
+      return { rect };
+    }
+  }
   return null;
 }
 
@@ -240,10 +233,7 @@ function positionButton(host, anchor) {
   const height = button.offsetHeight || 32;
   const rawTop = anchor.rect.top + (anchor.rect.height - height) / 2;
   const top = Math.min(Math.max(rawTop, 64), window.innerHeight - height - 8);
-  const left =
-    anchor.kind === "right"
-      ? anchor.rect.left - width - 8
-      : anchor.rect.right - width - 8;
+  const left = Math.min(anchor.rect.right + 8, window.innerWidth - width - 12);
   host.style.top = `${top}px`;
   host.style.left = `${Math.max(8, left)}px`;
   host.style.display = "block";
@@ -257,9 +247,9 @@ function updateButton() {
     return;
   }
 
-  const anchor = findToolbarAnchor();
+  const anchor = findTitleAnchor();
   if (!anchor || anchor.rect.bottom < 64) {
-    // 操作栏还没渲染，或已经滚到固定头部下方看不到：先隐藏
+    // 标题还没渲染，或已经滚到固定头部下方看不到：先隐藏
     buttonAnchorKey = "";
     if (buttonShowTimer) clearTimeout(buttonShowTimer);
     if (buttonHost) buttonHost.style.display = "none";
@@ -267,10 +257,9 @@ function updateButton() {
   }
 
   const host = ensureButtonHost();
-  const key = `${anchor.kind}:${Math.round(anchor.rect.left)}:${Math.round(anchor.rect.top)}:${Math.round(anchor.rect.right)}`;
+  const key = `${Math.round(anchor.rect.left)}:${Math.round(anchor.rect.top)}:${Math.round(anchor.rect.right)}`;
   if (host.style.display === "none") {
-    // 首次出现前，等 B站操作栏位置连续稳定一小段时间，
-    // 避免按钮先叠在「稿件举报」等元素上闪一下再跳正。
+    // 首次出现前，等标题位置连续稳定一小段时间，避免闪跳。
     if (key !== buttonAnchorKey) {
       buttonAnchorKey = key;
       if (buttonShowTimer) clearTimeout(buttonShowTimer);
