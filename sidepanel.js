@@ -15,6 +15,14 @@ import {
 import { normalizeProviderConfig, requestAiCompletionStream } from "./lib/ai.js";
 import { renderMarkdown } from "./lib/markdown.js";
 
+const EMPTY_GLYPHS = {
+  video: '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3.5l4 3 4-3"/></svg>',
+  mute: '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><line x1="16" y1="9" x2="20" y2="15"/><line x1="20" y1="9" x2="16" y2="15"/></svg>',
+  lock: '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  overview: '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><line x1="10" y1="12" x2="17" y2="12"/><line x1="10" y1="15" x2="14" y2="15"/></svg>',
+  notes: '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><line x1="14.5" y1="6.5" x2="17.5" y2="9.5"/></svg>',
+};
+
 const state = {
   video: null,
   segments: [],
@@ -263,8 +271,9 @@ async function detectVideo() {
       updateHeader();
       renderEmpty(
         segmentsEl,
-        "📺",
+        EMPTY_GLYPHS.video,
         ["请打开一个 B站视频页面", "字幕和笔记会出现在这里"],
+        { glyphHtml: true },
       );
       return;
     }
@@ -321,7 +330,12 @@ async function ensureAuthorMid() {
 async function loadTranscript() {
   const { bvid, cid } = state.video;
   if (!bvid) {
-    renderEmpty(segmentsEl, "📺", ["请打开一个 B站视频页面", "字幕和笔记会出现在这里"]);
+    renderEmpty(
+      segmentsEl,
+      EMPTY_GLYPHS.video,
+      ["请打开一个 B站视频页面", "字幕和笔记会出现在这里"],
+      { glyphHtml: true },
+    );
     return;
   }
 
@@ -341,13 +355,14 @@ async function loadTranscript() {
     if (state.segments.length === 0) {
       renderEmpty(
         segmentsEl,
-        "🔇",
+        EMPTY_GLYPHS.mute,
         [
           result.tracks?.length
             ? "字幕文件为空"
             : "没有找到字幕轨道",
           "请确认：已在 bilibili.com 登录，且这个视频本身有字幕",
         ],
+        { glyphHtml: true },
       );
       transcriptStatusEl.textContent = "";
       return;
@@ -362,11 +377,12 @@ async function loadTranscript() {
     const needsLogin = message.includes("-101") || message.includes("未登录");
     renderEmpty(
       segmentsEl,
-      "🔒",
+      EMPTY_GLYPHS.lock,
       [
         `读取字幕失败：${message}`,
         needsLogin ? "请先在 bilibili.com 登录，然后刷新视频页" : "请刷新视频页后重试",
       ],
+      { glyphHtml: true },
     );
   }
 }
@@ -613,8 +629,9 @@ async function loadOverview({ force = false } = {}) {
   if (!state.video?.bvid || !state.segments.length) {
     renderEmpty(
       overviewContentEl,
-      "🗂️",
+      EMPTY_GLYPHS.overview,
       ["该视频没有字幕，无法生成概览"],
+      { glyphHtml: true },
     );
     return;
   }
@@ -651,7 +668,12 @@ async function loadOverview({ force = false } = {}) {
  */
 async function loadCachedOverview() {
   if (!state.video?.bvid) {
-    renderEmpty(overviewContentEl, "🗂️", ["先打开一个 B站视频"]);
+    renderEmpty(
+      overviewContentEl,
+      EMPTY_GLYPHS.overview,
+      ["先打开一个 B站视频"],
+      { glyphHtml: true },
+    );
     return;
   }
   try {
@@ -669,10 +691,15 @@ async function loadCachedOverview() {
   }
   state.overview = null;
   overviewStatusEl.textContent = "";
-  renderEmpty(overviewContentEl, "🗂️", [
-    "这个视频还没有概览",
-    "点上方「生成 AI 概览」开始，会调用 AI 并缓存结果",
-  ]);
+  renderEmpty(
+    overviewContentEl,
+    EMPTY_GLYPHS.overview,
+    [
+      "这个视频还没有概览",
+      "点上方「生成 AI 概览」开始，会调用 AI 并缓存结果",
+    ],
+    { glyphHtml: true },
+  );
 }
 
 function renderOverview() {
@@ -833,7 +860,12 @@ async function refreshNotes() {
       state.notes = result.notes || [];
     } else {
       if (!state.video?.bvid) {
-        renderEmpty(notesListEl, "📝", ["先打开一个 B站视频"]);
+        renderEmpty(
+          notesListEl,
+          EMPTY_GLYPHS.notes,
+          ["先打开一个 B站视频"],
+          { glyphHtml: true },
+        );
         return;
       }
       const result = await send("getNotes", { videoId: state.video.bvid });
@@ -851,10 +883,11 @@ function renderNotes() {
   if (state.notes.length === 0) {
     renderEmpty(
       notesListEl,
-      "📝",
+      EMPTY_GLYPHS.notes,
       state.notesScope === "all"
         ? ["还没有任何视频的笔记", "看视频时点「标记」或按 N，把当前句原文存为标记"]
         : ["还没有笔记", "看视频时点「标记」或按 N，把当前句原文存为标记"],
+      { glyphHtml: true },
     );
     return;
   }

@@ -20,6 +20,8 @@ let noteSaving = false;
 let noteKeyboardListenerAdded = false;
 let lastUrl = location.href;
 let updateTimer = null;
+let buttonAnchorKey = "";
+let buttonShowTimer = null;
 
 // ============================================================
 // 视频上下文
@@ -232,20 +234,7 @@ function findToolbarAnchor() {
   return null;
 }
 
-function updateButton() {
-  if (!getBvid()) {
-    if (buttonHost) buttonHost.style.display = "none";
-    return;
-  }
-
-  const anchor = findToolbarAnchor();
-  if (!anchor || anchor.rect.bottom < 64) {
-    // 操作栏还没渲染，或已经滚到固定头部下方看不到：先隐藏
-    if (buttonHost) buttonHost.style.display = "none";
-    return;
-  }
-
-  const host = ensureButtonHost();
+function positionButton(host, anchor) {
   const button = host.firstElementChild;
   const width = button.offsetWidth || 90;
   const height = button.offsetHeight || 32;
@@ -258,6 +247,42 @@ function updateButton() {
   host.style.top = `${top}px`;
   host.style.left = `${Math.max(8, left)}px`;
   host.style.display = "block";
+}
+
+function updateButton() {
+  if (!getBvid()) {
+    buttonAnchorKey = "";
+    if (buttonShowTimer) clearTimeout(buttonShowTimer);
+    if (buttonHost) buttonHost.style.display = "none";
+    return;
+  }
+
+  const anchor = findToolbarAnchor();
+  if (!anchor || anchor.rect.bottom < 64) {
+    // 操作栏还没渲染，或已经滚到固定头部下方看不到：先隐藏
+    buttonAnchorKey = "";
+    if (buttonShowTimer) clearTimeout(buttonShowTimer);
+    if (buttonHost) buttonHost.style.display = "none";
+    return;
+  }
+
+  const host = ensureButtonHost();
+  const key = `${anchor.kind}:${Math.round(anchor.rect.left)}:${Math.round(anchor.rect.top)}:${Math.round(anchor.rect.right)}`;
+  if (host.style.display === "none") {
+    // 首次出现前，等 B站操作栏位置连续稳定一小段时间，
+    // 避免按钮先叠在「稿件举报」等元素上闪一下再跳正。
+    if (key !== buttonAnchorKey) {
+      buttonAnchorKey = key;
+      if (buttonShowTimer) clearTimeout(buttonShowTimer);
+      buttonShowTimer = setTimeout(() => {
+        buttonShowTimer = null;
+        updateButton();
+      }, 600);
+      return;
+    }
+  }
+
+  positionButton(host, anchor);
 }
 
 function scheduleUpdate(delay = 100) {
@@ -295,7 +320,7 @@ function ensureNoteButtonHost() {
     padding: 0 14px;
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 15px;
-    background: #00aeec;
+    background: #fb7299;
     color: #fff;
     font-size: 12px;
     font-weight: 500;
@@ -306,10 +331,10 @@ function ensureNoteButtonHost() {
     transition: background 0.15s ease;
   `;
   button.addEventListener("mouseenter", () => {
-    button.style.background = "#00a1d6";
+    button.style.background = "#f25d8a";
   });
   button.addEventListener("mouseleave", () => {
-    button.style.background = "#00aeec";
+    button.style.background = "#fb7299";
   });
   button.addEventListener("click", (event) => {
     event.preventDefault();
