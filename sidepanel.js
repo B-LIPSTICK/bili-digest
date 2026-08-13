@@ -42,6 +42,7 @@ const segmentsEl = $("segments");
 const transcriptStatusEl = $("transcriptStatus");
 const translationTrackEl = $("translationTrack");
 const translationFillEl = $("translationFill");
+const translateBtn = $("translateBtn");
 const copyTranscriptBtn = $("copyTranscriptBtn");
 const exportBtn = $("exportBtn");
 const refreshBtn = $("refreshBtn");
@@ -244,6 +245,7 @@ async function loadTranscript() {
 
     transcriptStatusEl.textContent = `已加载 ${state.segments.length} 条字幕`;
     renderSegments();
+    updateTranslateButton();
   } catch (error) {
     transcriptStatusEl.textContent = "";
     const message = error.message || "未知错误";
@@ -327,6 +329,7 @@ async function startTranslation() {
   const target = effectiveTargetLanguage();
 
   state.translating = true;
+  updateTranslateButton();
   translationTrackEl.classList.remove("hidden");
   setProgress(0);
   transcriptStatusEl.className = "status-line";
@@ -349,7 +352,21 @@ async function startTranslation() {
   } finally {
     state.translating = false;
     translationTrackEl.classList.add("hidden");
+    updateTranslateButton();
   }
+}
+
+function updateTranslateButton() {
+  const hasSegments = state.segments.length > 0;
+  const complete =
+    hasSegments && state.translations.length === state.segments.length;
+  if (state.translating) {
+    translateBtn.disabled = true;
+    translateBtn.textContent = "翻译中…";
+    return;
+  }
+  translateBtn.disabled = !hasSegments || complete;
+  translateBtn.textContent = complete ? "已翻译" : "翻译";
 }
 
 function switchMode(mode) {
@@ -362,9 +379,17 @@ function switchMode(mode) {
   if (
     mode !== "original" &&
     state.segments.length > 0 &&
-    state.translations.length !== state.segments.length
+    state.translations.length !== state.segments.length &&
+    !state.translating
   ) {
-    startTranslation();
+    transcriptStatusEl.className = "status-line";
+    transcriptStatusEl.textContent =
+      "尚未翻译，点右上角「翻译」按钮开始（结果会缓存）";
+  } else if (
+    mode === "original" &&
+    (transcriptStatusEl.textContent || "").includes("尚未翻译")
+  ) {
+    transcriptStatusEl.textContent = "";
   }
 }
 
@@ -900,6 +925,7 @@ refreshBtn.addEventListener("click", () => {
   loadTranscript().finally(() => refreshBtn.classList.remove("spinning"));
 });
 
+translateBtn.addEventListener("click", startTranslation);
 exportBtn.addEventListener("click", exportMarkdown);
 copyTranscriptBtn.addEventListener("click", copyTranscript);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));

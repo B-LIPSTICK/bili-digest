@@ -203,6 +203,11 @@ body {
   gap: 4px;
 }
 
+.toolbar-actions .ghost-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 /* ============ 按钮 ============ */
 
 button {
