@@ -1,20 +1,27 @@
 :root {
-  --paper: #f3efe6;
-  --surface: #fbf8f1;
-  --surface-2: #f6f1e7;
-  --ink: #211f1a;
-  --ink-2: #6c675c;
-  --ink-3: #a09a8c;
-  --line: #ddd6c6;
-  --line-strong: #b9b09d;
-  --accent: #b6422c;
-  --accent-strong: #96321f;
-  --ok: #4e6e4e;
-  --danger: #b6422c;
-  --font-display: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
-  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-    "Segoe UI", sans-serif;
-  --font-mono: "Cascadia Code", "SF Mono", Consolas, ui-monospace, monospace;
+  --paper: #f6f0eb;
+  --surface: #fffdf9;
+  --surface-2: #f1e9e0;
+  --ink: #0a0a0a;
+  --ink-2: rgba(10, 10, 10, 0.62);
+  --ink-3: rgba(10, 10, 10, 0.42);
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  --accent: #d19461;
+  --accent-strong: #b77b45;
+  --accent-soft: rgba(209, 148, 97, 0.14);
+  --ok: #5a7d5a;
+  --danger: #b4553f;
+
+  --font-display: "Stack Sans Headline", "Noto Sans SC", "Source Han Sans SC",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Stack Sans Text", "Noto Sans SC", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --shadow-rest: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 * {
@@ -38,7 +45,7 @@ body::after {
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
 }
 
@@ -59,12 +66,14 @@ body::after {
   margin: 0;
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .brand-mark {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
   background: var(--accent);
 }
 
@@ -72,8 +81,9 @@ body::after {
   margin-bottom: 24px;
   padding: 18px 20px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-rest), var(--shadow-inset);
 }
 
 .group h2 {
@@ -82,13 +92,14 @@ body::after {
   border-bottom: 1px solid var(--line);
   font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .field-label {
   display: block;
   margin-bottom: 5px;
   font-size: 13px;
+  font-weight: 550;
   color: var(--ink-2);
 }
 
@@ -109,12 +120,13 @@ select {
   width: 100%;
   padding: 8px 11px;
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 input:focus,
@@ -126,7 +138,7 @@ select:focus {
   width: 38px;
   flex: 0 0 38px;
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink-2);
   cursor: pointer;
@@ -142,12 +154,14 @@ select:focus {
 .primary-btn {
   padding: 8px 20px;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
-  color: var(--surface);
+  color: #fff;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 550;
   cursor: pointer;
+  box-shadow: var(--shadow-inset);
+  transition: background 0.16s ease;
 }
 
 .primary-btn:hover {
@@ -157,16 +171,17 @@ select:focus {
 .ghost-btn {
   padding: 7px 15px;
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink-2);
   font-size: 12px;
   cursor: pointer;
+  box-shadow: var(--shadow-inset);
 }
 
 .ghost-btn:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .hint {

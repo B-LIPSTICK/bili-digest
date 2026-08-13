@@ -1,35 +1,44 @@
 /*
- * 设计取向：编辑部校样台。
+ * 设计取向：暖奶油 + 琥珀橙。
  *
- * 炭黑刊头 + 暖纸底 + 铅印朱红，标题用宋体、时间戳用等宽字，
- * 让侧边栏读起来像一份排好的讲义，而不是常见的渐变玻璃模板。
+ * 参考 ScreenTune：奶油底、近黑字、琥珀强调、大圆角、柔和
+ * 多层阴影与内描边高光、眉题大写字距、极淡颗粒。整体安静、
+ * 有质感，适合把视频内容当资料慢慢读。
  */
 
 :root {
-  --paper: #f3efe6;
-  --surface: #fbf8f1;
-  --surface-2: #f6f1e7;
-  --ink: #211f1a;
-  --ink-2: #6c675c;
-  --ink-3: #a09a8c;
-  --line: #ddd6c6;
-  --line-strong: #b9b09d;
-  --accent: #b6422c;
-  --accent-strong: #96321f;
-  --accent-soft: rgba(182, 66, 44, 0.08);
-  --ok: #4e6e4e;
-  --danger: #b6422c;
-  --masthead: #211f1a;
-  --masthead-text: #f3efe6;
+  --paper: #f6f0eb;
+  --surface: #fffdf9;
+  --surface-2: #f1e9e0;
+  --ink: #0a0a0a;
+  --ink-2: rgba(10, 10, 10, 0.62);
+  --ink-3: rgba(10, 10, 10, 0.42);
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  --accent: #d19461;
+  --accent-strong: #b77b45;
+  --accent-warm: #e8b487;
+  --accent-soft: rgba(209, 148, 97, 0.14);
+  --ok: #5a7d5a;
+  --danger: #b4553f;
 
-  --font-display: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
-  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-    "Segoe UI", sans-serif;
+  --font-display: "Stack Sans Headline", "Noto Sans SC", "Source Han Sans SC",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Stack Sans Text", "Noto Sans SC", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: "Cascadia Code", "SF Mono", Consolas, ui-monospace, monospace;
 
-  --shadow-sm: 0 1px 2px rgba(33, 31, 26, 0.06);
-  --shadow-md: 0 3px 10px rgba(33, 31, 26, 0.08);
-  --shadow-lg: 0 14px 34px rgba(33, 31, 26, 0.18);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-full: 999px;
+
+  --shadow-rest: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-raised: 0 1px 6px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.14);
+  --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.16);
+  --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.2);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 * {
@@ -50,18 +59,18 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
-/* 极淡纸张颗粒，制造一点点印刷质感 */
+/* 极淡颗粒，制造一点点印刷质感 */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
 }
 
@@ -76,55 +85,55 @@ body::after {
 ::-webkit-scrollbar-thumb {
   background: var(--line-strong);
   border: 2px solid var(--paper);
-  border-radius: 4px;
+  border-radius: var(--radius-full);
 }
 
 .hidden {
   display: none !important;
 }
 
-/* ============ 刊头 ============ */
+/* ============ 头部 ============ */
 
 .header {
   flex-shrink: 0;
-  padding: 14px 18px 13px;
-  background: var(--masthead);
-  color: var(--masthead-text);
-  border-bottom: 2px solid var(--accent);
+  padding: 15px 18px 13px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
 }
 
 .brand-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   margin-bottom: 9px;
 }
 
 .brand-mark {
-  width: 9px;
-  height: 9px;
-  align-self: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
   background: var(--accent);
 }
 
 .brand-name {
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
 }
 
 .brand-sub {
-  font-family: var(--font-display);
   font-size: 12px;
-  color: rgba(243, 239, 230, 0.62);
+  color: var(--ink-3);
 }
 
 .video-title {
   margin: 0;
   font-family: var(--font-display);
   font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -132,13 +141,13 @@ body::after {
 }
 
 .video-meta {
-  margin-top: 4px;
+  margin-top: 5px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: rgba(243, 239, 230, 0.55);
+  color: var(--ink-3);
 }
 
-/* ============ 栏目标签 ============ */
+/* ============ 标签页 ============ */
 
 .tabs {
   display: flex;
@@ -157,6 +166,7 @@ body::after {
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
 .tab::after {
@@ -166,9 +176,10 @@ body::after {
   bottom: -1px;
   width: 0;
   height: 2px;
+  border-radius: 1px;
   background: var(--accent);
   transform: translateX(-50%);
-  transition: width 0.16s ease;
+  transition: width 0.18s ease;
 }
 
 .tab:hover {
@@ -177,11 +188,11 @@ body::after {
 
 .tab.active {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .tab.active::after {
-  width: 18px;
+  width: 20px;
 }
 
 /* ============ 内容区 ============ */
@@ -214,18 +225,18 @@ body::after {
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .toolbar-actions .ghost-btn {
-  padding: 4px 10px;
+  padding: 4px 11px;
   font-size: 12px;
 }
 
 .chat-title {
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 /* ============ 按钮 ============ */
@@ -235,19 +246,24 @@ button {
 }
 
 .primary-btn {
-  padding: 7px 16px;
+  padding: 7px 17px;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
-  color: var(--surface);
+  color: #fff;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 550;
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow: var(--shadow-inset);
+  transition: background 0.16s ease, transform 0.1s ease;
 }
 
 .primary-btn:hover {
   background: var(--accent-strong);
+}
+
+.primary-btn:active {
+  transform: translateY(1px);
 }
 
 .primary-btn:disabled {
@@ -258,17 +274,18 @@ button {
 .ghost-btn {
   padding: 6px 13px;
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink-2);
   font-size: 12px;
   cursor: pointer;
+  box-shadow: var(--shadow-inset);
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .ghost-btn:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .ghost-btn:disabled {
@@ -280,11 +297,12 @@ button {
   width: 28px;
   height: 28px;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--ink-2);
   font-size: 14px;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .icon-btn:hover {
@@ -306,26 +324,31 @@ button {
 
 .mode-switch {
   display: inline-flex;
-  padding: 2px;
+  padding: 3px;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   background: var(--surface);
 }
 
 .mode {
-  padding: 4px 11px;
+  padding: 4px 12px;
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-full);
   background: none;
   color: var(--ink-2);
   font-size: 12px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mode:hover {
+  color: var(--ink);
 }
 
 .mode.active {
-  background: var(--ink);
-  color: var(--surface);
-  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 650;
 }
 
 /* ============ 状态与进度 ============ */
@@ -341,8 +364,9 @@ button {
 }
 
 .progress-track {
-  height: 3px;
+  height: 4px;
   margin-bottom: 12px;
+  border-radius: var(--radius-full);
   background: var(--line);
   overflow: hidden;
 }
@@ -350,6 +374,7 @@ button {
 .progress-fill {
   height: 100%;
   width: 0;
+  border-radius: var(--radius-full);
   background: var(--accent);
   transition: width 0.2s ease;
 }
@@ -364,16 +389,19 @@ button {
 .segment {
   position: relative;
   padding: 7px 10px 7px 14px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 
 .segment::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 9px;
-  bottom: 9px;
-  width: 2px;
+  left: 5px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
   background: transparent;
 }
 
@@ -396,22 +424,22 @@ button {
   margin-right: 8px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--accent);
+  color: var(--accent-strong);
   user-select: none;
 }
 
 .segment-explain {
   display: inline-block;
   margin-left: 6px;
-  padding: 0 7px;
+  padding: 0 8px;
   border: 1px solid var(--line-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-full);
   background: var(--surface);
   color: var(--ink-3);
   font-size: 11px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .segment:hover .segment-explain {
@@ -420,7 +448,7 @@ button {
 
 .segment-explain:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .segment-zh {
@@ -449,10 +477,10 @@ button {
   z-index: 40;
   max-height: 55%;
   padding: 14px 16px;
-  border: 1px solid var(--ink);
-  border-radius: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lift), var(--shadow-inset);
   overflow-y: auto;
 }
 
@@ -466,15 +494,15 @@ button {
 .sheet-title {
   font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .sheet-original {
   margin-bottom: 8px;
-  padding: 8px 11px;
-  border-left: 2px solid var(--accent);
-  background: var(--surface-2);
-  font-family: var(--font-display);
+  padding: 9px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
   font-size: 13.5px;
 }
 
@@ -494,54 +522,60 @@ button {
 }
 
 .summary-card {
-  padding: 13px 15px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--ink);
-  background: var(--surface);
+  padding: 14px 16px;
+  border: 1px solid rgba(209, 148, 97, 0.25);
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-inset);
 }
 
 .card-label {
-  margin: 0 0 7px;
-  font-family: var(--font-mono);
+  margin: 0 0 8px;
+  font-family: var(--font-body);
   font-size: 10.5px;
-  letter-spacing: 0.12em;
-  color: var(--accent);
+  font-weight: 650;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--accent-strong);
 }
 
 .summary-text {
   margin: 0;
   font-family: var(--font-display);
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.75;
 }
 
 .chapter-card {
-  padding: 9px 13px;
+  padding: 10px 14px;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-rest);
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .chapter-card:hover {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(209, 148, 97, 0.5);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
 }
 
 .chapter-title {
   font-size: 13px;
+  font-weight: 550;
 }
 
 .chapter-time {
   display: inline-block;
   margin-top: 4px;
-  padding: 1px 7px;
-  background: var(--surface-2);
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--ink-2);
+  color: var(--accent-strong);
 }
 
 .keypoints {
@@ -553,10 +587,11 @@ button {
 .keypoints li {
   position: relative;
   margin-bottom: 6px;
-  padding: 7px 10px 7px 22px;
+  padding: 8px 11px 8px 24px;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
+  box-shadow: var(--shadow-inset);
   font-size: 13px;
   color: var(--ink-2);
 }
@@ -564,24 +599,27 @@ button {
 .keypoints li::before {
   content: "";
   position: absolute;
-  left: 10px;
-  top: 14px;
-  width: 5px;
-  height: 5px;
+  left: 11px;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: var(--accent);
 }
 
 /* ============ 金句 ============ */
 
 .quote-item {
-  padding: 10px 12px;
+  padding: 11px 13px;
   border: 1px solid var(--line);
   border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-inset);
 }
 
 .quote-item + .quote-item {
-  margin-top: 7px;
+  margin-top: 8px;
 }
 
 .quote-text {
@@ -605,7 +643,7 @@ button {
   background: none;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--accent);
+  color: var(--accent-strong);
   cursor: pointer;
 }
 
@@ -619,18 +657,19 @@ button {
 }
 
 .quote-actions button {
-  padding: 1px 8px;
+  padding: 1px 9px;
   border: 1px solid var(--line-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-full);
   background: var(--surface);
   color: var(--ink-3);
   font-size: 11px;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .quote-actions button:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 /* ============ 笔记 ============ */
@@ -638,16 +677,17 @@ button {
 .note-composer {
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-rest), var(--shadow-inset);
 }
 
 .note-composer textarea,
 .chat-composer textarea {
   width: 100%;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-body);
@@ -655,6 +695,7 @@ button {
   line-height: 1.6;
   resize: vertical;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 .note-composer textarea:focus,
@@ -667,7 +708,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
+  margin-top: 9px;
 }
 
 .chat-composer-row {
@@ -681,11 +722,12 @@ button {
 }
 
 .chip {
-  padding: 2px 8px;
-  background: var(--surface-2);
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--ink-2);
+  color: var(--accent-strong);
 }
 
 .notes {
@@ -701,17 +743,23 @@ button {
 
 .note-card {
   position: relative;
-  padding: 10px 32px 10px 12px;
+  padding: 11px 34px 11px 13px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-rest), var(--shadow-inset);
+  transition: box-shadow 0.15s ease;
+}
+
+.note-card:hover {
+  box-shadow: var(--shadow-hover), var(--shadow-inset);
 }
 
 .note-head {
   display: flex;
   align-items: center;
   margin-bottom: 4px;
-  padding-right: 20px;
+  padding-right: 18px;
 }
 
 .note-time {
@@ -720,7 +768,7 @@ button {
   background: none;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--accent);
+  color: var(--accent-strong);
   cursor: pointer;
 }
 
@@ -752,18 +800,19 @@ button {
 }
 
 .note-actions button {
-  padding: 2px 9px;
+  padding: 2px 10px;
   border: 1px solid var(--line-strong);
-  border-radius: 2px;
+  border-radius: var(--radius-full);
   background: var(--surface);
   color: var(--ink-3);
   font-size: 11px;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .note-actions button:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .note-delete {
@@ -773,13 +822,13 @@ button {
   width: 22px;
   height: 22px;
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-full);
   background: none;
   color: var(--ink-3);
   font-size: 12px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .note-card:hover .note-delete {
@@ -807,9 +856,11 @@ button {
 
 .chat-msg-head {
   margin-bottom: 4px;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 10.5px;
-  letter-spacing: 0.1em;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
@@ -819,20 +870,21 @@ button {
 
 .chat-msg.user .chat-msg-text {
   background: var(--ink);
-  color: var(--surface);
-  border-color: var(--ink);
+  color: #fff;
   max-width: 88%;
+  box-shadow: var(--shadow-inset);
 }
 
 .chat-msg.ai .chat-msg-text {
   background: var(--surface);
   border: 1px solid var(--line);
   max-width: 94%;
+  box-shadow: var(--shadow-inset);
 }
 
 .chat-msg-text {
-  padding: 9px 12px;
-  border-radius: 4px;
+  padding: 9px 13px;
+  border-radius: var(--radius-md);
   font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
@@ -850,7 +902,7 @@ button {
   padding: 10px 0 14px;
   background: linear-gradient(
     to bottom,
-    rgba(243, 239, 230, 0),
+    rgba(246, 240, 235, 0),
     var(--paper) 28%
   );
 }
@@ -866,25 +918,26 @@ button {
 }
 
 .group-title {
-  margin: 0 0 10px;
-  padding-bottom: 6px;
+  margin: 0 0 11px;
+  padding-bottom: 7px;
   border-bottom: 1px solid var(--line);
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .field-label {
   display: block;
   margin-bottom: 5px;
   font-size: 12px;
+  font-weight: 550;
   color: var(--ink-2);
 }
 
 input + .field-label,
 select + .field-label,
 .key-row + .field-label {
-  margin-top: 10px;
+  margin-top: 11px;
 }
 
 .key-row {
@@ -896,14 +949,15 @@ input[type="password"],
 input[type="text"],
 select {
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 11px;
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 input:focus,
@@ -912,11 +966,11 @@ select:focus {
 }
 
 .button-row {
-  margin-top: 9px;
+  margin-top: 10px;
 }
 
 .hint {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   font-size: 12px;
   color: var(--ink-2);
   line-height: 1.65;
@@ -961,10 +1015,10 @@ select:focus {
   bottom: 20px;
   z-index: 50;
   max-width: 84%;
-  padding: 8px 14px;
-  border-radius: 3px;
+  padding: 9px 15px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
-  color: var(--surface);
+  color: #fff;
   font-size: 12.5px;
   box-shadow: var(--shadow-lg);
   transform: translateX(-50%) translateY(6px);
