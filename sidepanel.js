@@ -36,6 +36,7 @@ const state = {
   chatMessages: [],
   chatLoaded: false,
   chatSending: false,
+  editingIndex: -1,
   currentTab: "transcript",
 };
 
@@ -920,6 +921,14 @@ async function loadChat() {
   state.chatLoaded = true;
 }
 
+function formatClock(ts) {
+  if (!ts) return "";
+  const date = new Date(Number(ts));
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 function renderChat() {
   chatMessagesEl.replaceChildren();
   if (!state.chatMessages.length) {
@@ -933,34 +942,113 @@ function renderChat() {
   const fragment = document.createDocumentFragment();
   state.chatMessages.forEach((message, index) => {
     const isUser = message.role === "user";
+    const isEditing = isUser && index === state.editingIndex;
     const wrapper = document.createElement("div");
     wrapper.className = `chat-msg ${isUser ? "user" : "ai"}`;
+
+    if (isEditing) {
+      wrapper.innerHTML = `
+        <div class="chat-edit-box">
+          <textarea rows="3" spellcheck="false">${escapeHtml(message.content)}</textarea>
+          <div class="chat-edit-actions">
+            <button class="ghost-btn" data-edit="cancel" type="button">取消</button>
+            <button class="primary-btn" data-edit="save" type="button">保存并重新回答</button>
+          </div>
+        </div>
+      `;
+      wrapper
+        .querySelector('[data-edit="cancel"]')
+        .addEventListener("click", cancelEditMessage);
+      wrapper
+        .querySelector('[data-edit="save"]')
+        .addEventListener("click", saveEditMessage);
+      fragment.appendChild(wrapper);
+      return;
+    }
+
+    const isPending =
+      !isUser &&
+      index === state.chatMessages.length - 1 &&
+      state.chatSending &&
+      !message.content;
     const contentHtml = isUser
       ? escapeHtml(message.content)
       : renderMarkdown(message.content);
     wrapper.innerHTML = `
       <div class="chat-msg-head">
         <span>${isUser ? "你" : "AI"}</span>
-        <button class="chat-msg-delete" data-index="${index}" title="删除这条消息" type="button">✕</button>
+        <span class="chat-msg-actions">
+          <span class="chat-msg-time">${formatClock(message.ts)}</span>
+          <button class="chat-msg-action" data-action="copy" type="button">复制</button>
+          ${isUser ? '<button class="chat-msg-action" data-action="edit" type="button">编辑</button>' : ""}
+          <button class="chat-msg-action" data-action="delete" type="button">删除</button>
+        </span>
       </div>
-      <div class="chat-msg-text">${contentHtml}</div>
+      <div class="chat-msg-text">${isPending ? "" : contentHtml}</div>
     `;
-    const isPending =
-      !isUser &&
-      index === state.chatMessages.length - 1 &&
-      state.chatSending &&
-      !message.content;
     if (isPending) {
       wrapper.classList.add("typing");
       wrapper.querySelector(".chat-msg-text").textContent = "正在思考…";
     }
-    wrapper.querySelector(".chat-msg-delete").addEventListener("click", () => {
-      deleteChatMessage(Number(index));
-    });
+    wrapper
+      .querySelector('[data-action="copy"]')
+      .addEventListener("click", () => copyChatMessage(index));
+    wrapper
+      .querySelector('[data-action="delete"]')
+      .addEventListener("click", () => deleteChatMessage(index));
+    const editButton = wrapper.querySelector('[data-action="edit"]');
+    if (editButton) {
+      editButton.addEventListener("click", () => startEditMessage(index));
+    }
     fragment.appendChild(wrapper);
   });
   chatMessagesEl.appendChild(fragment);
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+async function copyChatMessage(index) {
+  const message = state.chatMessages[index];
+  if (!message?.content) return;
+  try {
+    await navigator.clipboard.writeText(message.content);
+    showToast("已复制");
+  } catch {
+    showToast("复制失败，请手动复制", "error");
+  }
+}
+
+function startEditMessage(index) {
+  if (state.chatSending) return;
+  const message = state.chatMessages[index];
+  if (!message || message.role !== "user") return;
+  state.editingIndex = index;
+  renderChat();
+  const textarea = chatMessagesEl.querySelector(".chat-edit-box textarea");
+  if (textarea) {
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }
+}
+
+function cancelEditMessage() {
+  state.editingIndex = -1;
+  renderChat();
+}
+
+async function saveEditMessage() {
+  const textarea = chatMessagesEl.querySelector(".chat-edit-box textarea");
+  const text = textarea?.value.trim();
+  if (!text) return;
+  const index = state.editingIndex;
+  state.chatMessages[index].content = text;
+  // 问题改了，旧回答作废：删掉其后的所有内容并重新生成
+  state.chatMessages.splice(index + 1);
+  state.chatMessages.push({ role: "assistant", content: "" });
+  state.editingIndex = -1;
+  state.chatSending = true;
+  sendChatBtn.disabled = true;
+  renderChat();
+  await runChatRequest();
 }
 
 function appendChatDelta(delta) {
@@ -1041,6 +1129,10 @@ async function runChatRequest() {
   } catch (error) {
     setChatError(error?.message || "未知错误");
   } finally {
+    const last = state.chatMessages[state.chatMessages.length - 1];
+    if (last && last.role === "assistant" && !last.ts) {
+      last.ts = Date.now();
+    }
     state.chatSending = false;
     sendChatBtn.disabled = false;
     saveChat();
@@ -1062,7 +1154,7 @@ async function sendChat() {
 
   state.chatSending = true;
   sendChatBtn.disabled = true;
-  state.chatMessages.push({ role: "user", content: text });
+  state.chatMessages.push({ role: "user", content: text, ts: Date.now() });
   state.chatMessages.push({ role: "assistant", content: "" });
   renderChat();
   chatInput.value = "";
@@ -1105,7 +1197,7 @@ async function clearChat() {
   if (!state.video?.bvid) return;
   let confirmed = true;
   try {
-    confirmed = window.confirm("清空当前视频的对话记录？");
+    confirmed = window.confirm("重置当前视频的对话？");
   } catch {
     // 个别环境禁用 confirm，直接执行清空
   }

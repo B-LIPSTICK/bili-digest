@@ -869,28 +869,73 @@ button {
   color: var(--ink-3);
 }
 
-.chat-msg-delete {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-full);
-  background: none;
-  color: var(--ink-3);
-  font-size: 10px;
-  line-height: 1;
-  cursor: pointer;
+.chat-msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
-.chat-msg:hover .chat-msg-delete {
+.chat-msg:hover .chat-msg-actions {
   opacity: 1;
 }
 
-.chat-msg-delete:hover {
-  background: var(--accent-soft);
-  color: var(--danger);
+.chat-msg-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.chat-msg-action {
+  padding: 0 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 10.5px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.chat-msg-action:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.chat-edit-box {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-inset);
+}
+
+.chat-edit-box textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+
+.chat-edit-box textarea:focus {
+  border-color: var(--accent);
+}
+
+.chat-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .chat-msg.user {
