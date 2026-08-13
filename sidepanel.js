@@ -19,6 +19,7 @@ const state = {
   video: null,
   segments: [],
   mode: "original",
+  hideOriginal: false,
   translations: [],
   translating: false,
   overview: null,
@@ -52,6 +53,7 @@ const segmentsEl = $("segments");
 const transcriptStatusEl = $("transcriptStatus");
 const translationTrackEl = $("translationTrack");
 const translationFillEl = $("translationFill");
+const hideOriginalBtn = $("hideOriginalBtn");
 const translateBtn = $("translateBtn");
 const copyTranscriptBtn = $("copyTranscriptBtn");
 const exportBtn = $("exportBtn");
@@ -346,23 +348,28 @@ async function loadTranscript() {
 function renderSegments() {
   segmentsEl.replaceChildren();
   const fragment = document.createDocumentFragment();
+  const isBilingual = state.mode === "bilingual";
+  const showOriginal =
+    state.mode === "original" || (isBilingual && !state.hideOriginal);
 
   state.segments.forEach((segment, index) => {
     const row = document.createElement("div");
     row.className = "segment";
-    if (state.mode === "translated" && !state.translations[index]) {
+    if (isBilingual && !state.translations[index]) {
       row.classList.add("tr-empty");
     }
 
-    const translation =
-      state.mode === "original"
-        ? ""
-        : `<div class="segment-tr">${escapeHtml(state.translations[index] || "…")}</div>`;
+    const original = showOriginal
+      ? `<span class="segment-zh">${escapeHtml(segment.content)}</span>`
+      : "";
+    const translation = isBilingual
+      ? `<div class="segment-tr${state.hideOriginal ? " tr-inline" : ""}">${escapeHtml(state.translations[index] || "…")}</div>`
+      : "";
 
     row.innerHTML = `
       <span class="segment-time">${secondsToTimestamp(segment.from)}</span>
       <button class="segment-explain" data-index="${index}" title="让 AI 解释这一句">解释</button>
-      <span class="segment-zh">${escapeHtml(segment.content)}</span>
+      ${original}
       ${translation}
     `;
     row.addEventListener("click", () => seekTo(segment.from));
@@ -453,9 +460,13 @@ function updateTranslateButton() {
 
 function switchMode(mode) {
   state.mode = mode;
+  if (mode === "original") {
+    state.hideOriginal = false;
+  }
   document.querySelectorAll(".mode").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
   });
+  updateHideOriginalButton();
   renderSegments();
 
   if (
@@ -473,6 +484,12 @@ function switchMode(mode) {
   ) {
     transcriptStatusEl.textContent = "";
   }
+}
+
+function updateHideOriginalButton() {
+  const bilingual = state.mode === "bilingual";
+  hideOriginalBtn.classList.toggle("hidden", !bilingual);
+  hideOriginalBtn.textContent = state.hideOriginal ? "显示原文" : "隐藏原文";
 }
 
 async function seekTo(seconds) {
@@ -539,10 +556,10 @@ async function copyTranscript() {
   }
   const lines = state.segments.map((segment, index) => {
     const time = secondsToTimestamp(segment.from);
-    if (state.mode === "translated") {
-      return `[${time}] ${state.translations[index] || "…"}`;
-    }
     if (state.mode === "bilingual") {
+      if (state.hideOriginal) {
+        return `[${time}] ${state.translations[index] || "…"}`;
+      }
       const translation = state.translations[index];
       return translation
         ? `[${time}] ${segment.content}\n${" ".repeat(time.length + 3)}${translation}`
@@ -1447,6 +1464,12 @@ refreshBtn.addEventListener("click", () => {
 });
 
 translateBtn.addEventListener("click", startTranslation);
+hideOriginalBtn.addEventListener("click", () => {
+  if (state.mode !== "bilingual") return;
+  state.hideOriginal = !state.hideOriginal;
+  updateHideOriginalButton();
+  renderSegments();
+});
 exportBtn.addEventListener("click", exportMarkdown);
 copyTranscriptBtn.addEventListener("click", copyTranscript);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));

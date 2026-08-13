@@ -261,6 +261,12 @@ body::after {
   margin-bottom: 12px;
 }
 
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .toolbar-actions {
   display: flex;
   align-items: center;
@@ -500,6 +506,10 @@ button {
   padding-left: 52px;
   color: var(--ink-2);
   font-size: 12.5px;
+}
+
+.segment-tr.tr-inline {
+  padding-left: 0;
 }
 
 .segment.tr-empty .segment-tr {
