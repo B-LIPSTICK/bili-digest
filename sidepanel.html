@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="dark" />
+    <title>Bili Digest</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="header">
+      <div class="brand-row">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">BILI DIGEST</span>
+        <span class="brand-sub">哔哩精读</span>
+      </div>
+      <h1 id="videoTitle" class="video-title">尚未检测到视频</h1>
+      <div id="videoMeta" class="video-meta"></div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="transcript" role="tab">字幕</button>
+      <button class="tab" data-tab="overview" role="tab">概览</button>
+      <button class="tab" data-tab="notes" role="tab">笔记</button>
+      <button class="tab" data-tab="settings" role="tab">设置</button>
+    </nav>
+
+    <main class="content">
+      <section id="tab-transcript" class="panel active">
+        <div class="panel-toolbar">
+          <div class="mode-switch" role="tablist" aria-label="字幕视图">
+            <button class="mode active" data-mode="original" role="tab">原文</button>
+            <button class="mode" data-mode="translated" role="tab">译文</button>
+            <button class="mode" data-mode="bilingual" role="tab">双语</button>
+          </div>
+          <button id="refreshBtn" class="icon-btn" title="重新加载字幕" aria-label="重新加载字幕">↻</button>
+        </div>
+        <div id="transcriptStatus" class="status-line"></div>
+        <div id="translationTrack" class="progress-track hidden">
+          <div id="translationFill" class="progress-fill"></div>
+        </div>
+        <div id="segments" class="segments"></div>
+      </section>
+
+      <section id="tab-overview" class="panel">
+        <div class="panel-toolbar">
+          <button id="generateOverviewBtn" class="primary-btn">生成 AI 概览</button>
+          <button id="regenerateOverviewBtn" class="icon-btn" title="重新生成" aria-label="重新生成">↻</button>
+        </div>
+        <div id="overviewStatus" class="status-line"></div>
+        <div id="overviewContent" class="overview"></div>
+      </section>
+
+      <section id="tab-notes" class="panel">
+        <div class="note-composer">
+          <textarea id="noteText" rows="3" placeholder="记下此刻的想法，保存后会带上时间戳…"></textarea>
+          <div class="note-composer-row">
+            <span id="noteTimeChip" class="chip">--:--</span>
+            <button id="saveNoteBtn" class="primary-btn">保存笔记</button>
+          </div>
+        </div>
+        <div id="notesStatus" class="status-line"></div>
+        <div id="notesList" class="notes"></div>
+      </section>
+
+      <section id="tab-settings" class="panel">
+        <div class="settings-group">
+          <h2 class="group-title">AI 服务</h2>
+          <label class="field-label" for="apiKeyInput">DeepSeek API Key</label>
+          <div class="key-row">
+            <input
+              id="apiKeyInput"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="sk-…"
+            />
+            <button id="toggleKeyBtn" class="icon-btn" title="显示/隐藏" aria-label="显示或隐藏密钥">◉</button>
+          </div>
+          <div class="button-row">
+            <button id="testKeyBtn" class="ghost-btn">测试连接</button>
+          </div>
+          <div id="keyTestResult" class="hint"></div>
+          <p class="hint dim">
+            模型固定为 deepseek-v4-flash（非思考模式），密钥只保存在本机 Chrome 存储中，不会上传到任何第三方服务器之外。
+          </p>
+        </div>
+
+        <div class="settings-group">
+          <h2 class="group-title">翻译</h2>
+          <label class="field-label" for="targetLanguageSelect">目标语言</label>
+          <select id="targetLanguageSelect">
+            <option value="English">English（英语）</option>
+            <option value="日本語">日本語（日语）</option>
+            <option value="한국어">한국어（韩语）</option>
+            <option value="custom">自定义…</option>
+          </select>
+          <input
+            id="customLanguageInput"
+            class="hidden"
+            placeholder="输入目标语言，如 Français"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="settings-group">
+          <h2 class="group-title">使用前提</h2>
+          <p class="hint dim">
+            读取字幕依赖你在 bilibili.com 的登录状态。扩展不会读取或保存你的登录信息，只是由浏览器在请求时自动携带。
+          </p>
+        </div>
+
+        <div class="button-row sticky">
+          <button id="saveSettingsBtn" class="primary-btn">保存设置</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="explainSheet" class="explain-sheet hidden">
+      <div class="sheet-head">
+        <span class="sheet-title">AI 解释</span>
+        <button id="closeExplainBtn" class="icon-btn" title="关闭" aria-label="关闭解释">✕</button>
+      </div>
+      <div id="explainOriginal" class="sheet-original"></div>
+      <div id="explainResult" class="sheet-result"></div>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

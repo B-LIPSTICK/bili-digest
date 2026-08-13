@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="dark" />
+    <title>Bili Digest 设置</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <h1>Bili Digest 设置</h1>
+      </header>
+
+      <section class="group">
+        <h2>AI 服务</h2>
+        <label class="field-label" for="apiKeyInput">DeepSeek API Key</label>
+        <div class="key-row">
+          <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" />
+          <button id="toggleKeyBtn" class="icon-btn" type="button" title="显示/隐藏">◉</button>
+        </div>
+        <div class="button-row">
+          <button id="testKeyBtn" class="ghost-btn" type="button">测试连接</button>
+        </div>
+        <div id="keyTestResult" class="hint"></div>
+        <p class="hint dim">
+          模型固定为 deepseek-v4-flash（非思考模式）。密钥只保存在本机 Chrome 存储中。
+        </p>
+      </section>
+
+      <section class="group">
+        <h2>翻译</h2>
+        <label class="field-label" for="targetLanguageSelect">目标语言</label>
+        <select id="targetLanguageSelect">
+          <option value="English">English（英语）</option>
+          <option value="日本語">日本語（日语）</option>
+          <option value="한국어">한국어（韩语）</option>
+          <option value="custom">自定义…</option>
+        </select>
+        <input id="customLanguageInput" class="hidden" placeholder="输入目标语言，如 Français" spellcheck="false" />
+      </section>
+
+      <section class="group">
+        <h2>使用前提</h2>
+        <p class="hint dim">
+          读取字幕依赖你在 bilibili.com 的登录状态。扩展不读取、不保存你的登录信息。
+        </p>
+      </section>
+
+      <div class="button-row">
+        <button id="saveSettingsBtn" class="primary-btn" type="button">保存设置</button>
+        <span id="savedHint" class="hint ok hidden">已保存 ✓</span>
+      </div>
+    </div>
+    <script src="options.js"></script>
+  </body>
+</html>

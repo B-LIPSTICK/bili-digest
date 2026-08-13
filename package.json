@@ -1,0 +1,14 @@
+{
+  "name": "bili-digest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "把 B站视频变成学习资料的 Chrome 扩展",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "check": "node scripts/check.js",
+    "package": "powershell -ExecutionPolicy Bypass -File scripts/package.ps1",
+    "verify-bili": "node scripts/verify-bili.mjs"
+  }
+}
