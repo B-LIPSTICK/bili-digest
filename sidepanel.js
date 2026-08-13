@@ -540,6 +540,36 @@ async function loadOverview({ force = false } = {}) {
   }
 }
 
+/**
+ * 打开概览页时只读本地缓存：有就直接展示，没有则提示用户手动生成，
+ * 绝不在这里自动调用 AI（生成需要用户明确点按钮确认）。
+ */
+async function loadCachedOverview() {
+  if (!state.video?.bvid) {
+    renderEmpty(overviewContentEl, "🗂️", ["先打开一个 B站视频"]);
+    return;
+  }
+  try {
+    const key = `digest:${state.video.bvid}:${state.video.cid}`;
+    const result = await chrome.storage.local.get(key);
+    const cached = result[key];
+    if (cached?.summary || cached?.chapters?.length) {
+      state.overview = { ...cached, cached: true };
+      overviewStatusEl.textContent = "已加载缓存的概览";
+      renderOverview();
+      return;
+    }
+  } catch {
+    // 读缓存失败就当没有缓存，走下面的引导提示
+  }
+  state.overview = null;
+  overviewStatusEl.textContent = "";
+  renderEmpty(overviewContentEl, "🗂️", [
+    "这个视频还没有概览",
+    "点上方「生成 AI 概览」开始，会调用 AI 并缓存结果",
+  ]);
+}
+
 function renderOverview() {
   overviewContentEl.replaceChildren();
   if (!state.overview) return;
@@ -1320,7 +1350,7 @@ function switchTab(tab) {
   });
 
   if (tab === "overview" && !state.overview) {
-    loadOverview();
+    loadCachedOverview();
   }
   if (tab === "notes") {
     captureCurrentSeconds();
