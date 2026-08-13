@@ -22,7 +22,6 @@ import {
   normalizeProviderConfig,
   migrateLegacySettings,
   requestAiCompletion,
-  requestAiCompletionStream,
   parseLooseJson,
 } from "./lib/ai.js";
 import { buildNoteContext, segmentsToText } from "./lib/note-context.js";
@@ -437,27 +436,6 @@ async function handleExplain({ text, context }) {
   return { text: result };
 }
 
-async function getChatTranscript(bvid, cid, aid) {
-  let record = await store.get(transcriptKey(bvid, cid), null);
-  if (!record?.segments?.length) {
-    record = await fetchTranscriptFromServer(bvid, cid, aid);
-  }
-  const segments = record?.segments || [];
-  if (!segments.length) {
-    throw new Error("该视频没有字幕，无法对话");
-  }
-
-  let text = segments
-    .map((segment) => `[${secondsToTimestamp(segment.from)}] ${segment.content}`)
-    .join("\n");
-  // 控制送入模型的长度，避免超长视频撑爆上下文
-  const LIMIT = 24000;
-  if (text.length > LIMIT) {
-    text = `${text.slice(0, LIMIT)}\n\n（字幕过长，仅载入前 ${LIMIT} 字，回答可能不涉及后半段内容）`;
-  }
-  return text;
-}
-
 async function handlePolishNote({ text }) {
   if (!text) throw new Error("没有可润色的内容");
   const settings = await getSettings();
@@ -704,45 +682,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: error?.message || "未知错误" });
     });
   return true; // 保持消息通道，等待异步结果
-});
-
-// 对话走长连接端口做流式输出：逐字推给侧边栏
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== "chat") return;
-  port.onMessage.addListener(async (message) => {
-    if (message.action !== "chatAsk") return;
-    const { bvid, cid, aid, messages } = message;
-    try {
-      const transcript = await getChatTranscript(bvid, cid, aid);
-      const system = await renderPrompt("chat.md", { transcript });
-      const settings = await getSettings();
-      const config = normalizeProviderConfig(settings);
-      await requestAiCompletionStream(
-        config,
-        [{ role: "system", content: system }, ...(Array.isArray(messages) ? messages : [])],
-        {
-          onDelta: (delta) => {
-            try {
-              port.postMessage({ type: "delta", delta });
-            } catch {
-              // 侧边栏已关闭时忽略
-            }
-          },
-        },
-      );
-      try {
-        port.postMessage({ type: "done" });
-      } catch {
-        // 侧边栏已关闭
-      }
-    } catch (error) {
-      try {
-        port.postMessage({ type: "error", error: error?.message || "未知错误" });
-      } catch {
-        // 侧边栏已关闭
-      }
-    }
-  });
 });
 
 // 点击工具栏图标直接打开侧边栏

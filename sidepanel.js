@@ -12,6 +12,7 @@ import {
   buildChatMarkdown,
   buildOverviewMarkdown,
 } from "./lib/export.js";
+import { normalizeProviderConfig, requestAiCompletionStream } from "./lib/ai.js";
 
 const state = {
   video: null,
@@ -944,16 +945,36 @@ function appendChatDelta(delta) {
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
 
-function finishChat(key, port) {
-  state.chatSending = false;
-  sendChatBtn.disabled = false;
-  try {
-    port.disconnect();
-  } catch {
-    // 端口可能已经断开
+function chatTranscriptText() {
+  let text = state.segments
+    .map((segment) => `[${secondsToTimestamp(segment.from)}] ${segment.content}`)
+    .join("\n");
+  const LIMIT = 24000;
+  if (text.length > LIMIT) {
+    text = `${text.slice(0, LIMIT)}\n\n（字幕过长，仅载入前 ${LIMIT} 字，回答可能不涉及后半段内容）`;
   }
-  chrome.storage.local.set({ [key]: state.chatMessages }).catch(() => {});
-  renderChat();
+  return text;
+}
+
+async function renderChatSystem(transcript) {
+  const url = chrome.runtime.getURL("prompts/chat.md");
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("读取对话提示词失败");
+  }
+  const template = await response.text();
+  return template.replaceAll("{{transcript}}", transcript);
+}
+
+function setChatError(message) {
+  let last = state.chatMessages[state.chatMessages.length - 1];
+  if (!last || last.role === "user") {
+    last = { role: "assistant", content: "" };
+    state.chatMessages.push(last);
+  }
+  last.content = last.content
+    ? `${last.content}\n\n（回答中断：${message}）`
+    : `回答失败：${message}`;
 }
 
 async function sendChat() {
@@ -961,6 +982,10 @@ async function sendChat() {
   if (!text || state.chatSending) return;
   if (!state.video?.bvid) {
     showToast("先打开一个 B站视频", "error");
+    return;
+  }
+  if (!state.segments.length) {
+    showToast("没有字幕无法对话，请先加载字幕", "error");
     return;
   }
 
@@ -972,51 +997,35 @@ async function sendChat() {
   chatInput.value = "";
 
   const key = chatKey(state.video.bvid, state.video.cid);
-  const history = state.chatMessages.filter((message) => message.content);
-  const port = chrome.runtime.connect({ name: "chat" });
-  let received = "";
-
-  port.onMessage.addListener((message) => {
-    if (message.type === "delta") {
-      received += message.delta;
-      appendChatDelta(message.delta);
-    } else if (message.type === "done") {
-      finishChat(key, port);
-    } else if (message.type === "error") {
-      const last = state.chatMessages[state.chatMessages.length - 1];
-      if (!last || last.role === "user") {
-        state.chatMessages.push({ role: "assistant", content: "" });
-      }
-      state.chatMessages[state.chatMessages.length - 1].content =
-        `回答失败：${message.error}`;
-      finishChat(key, port);
-    }
-  });
-
-  port.onDisconnect.addListener(() => {
-    if (!received && state.chatSending) {
-      const last = state.chatMessages[state.chatMessages.length - 1];
-      if (last && last.role === "assistant" && !last.content) {
-        last.content = "连接中断，请重试";
-      }
-      finishChat(key, port);
-    }
-  });
-
   try {
-    port.postMessage({
-      action: "chatAsk",
-      bvid: state.video.bvid,
-      cid: state.video.cid,
-      aid: state.video.aid,
-      messages: history,
-    });
-  } catch (error) {
-    const last = state.chatMessages[state.chatMessages.length - 1];
-    if (last && last.role === "assistant" && !last.content) {
-      last.content = `发送失败：${error.message}`;
+    if (!state.settingsLoaded) {
+      await loadSettings();
     }
-    finishChat(key, port);
+    const config = normalizeProviderConfig(state.settings);
+    if (!config.apiKey) {
+      throw new Error("请先在「设置」里填写 API Key");
+    }
+    if (!config.baseUrl || !config.model) {
+      throw new Error("请先在「设置」里填写接口地址和模型名");
+    }
+
+    const system = await renderChatSystem(chatTranscriptText());
+    // 去掉末尾的空 assistant 占位，只把已有内容的对话历史发出去
+    const history = state.chatMessages.filter((message) => message.content);
+    await requestAiCompletionStream(
+      config,
+      [{ role: "system", content: system }, ...history],
+      {
+        onDelta: (delta) => appendChatDelta(delta),
+      },
+    );
+  } catch (error) {
+    setChatError(error?.message || "未知错误");
+  } finally {
+    state.chatSending = false;
+    sendChatBtn.disabled = false;
+    chrome.storage.local.set({ [key]: state.chatMessages }).catch(() => {});
+    renderChat();
   }
 }
 
