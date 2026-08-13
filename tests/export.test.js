@@ -4,6 +4,7 @@ import {
   buildMarkdown,
   buildChatMarkdown,
   buildOverviewMarkdown,
+  normalizeModelMarkdown,
 } from "../lib/export.js";
 
 const FIXED_DATE = new Date("2026-08-13T08:00:00.000Z");
@@ -125,4 +126,34 @@ test("buildOverviewMarkdown 只输出概览内容", () => {
   assert.match(markdown, /## 要点/);
   assert.match(markdown, /## 金句/);
   assert.doesNotMatch(markdown, /## 字幕/);
+});
+
+test("normalizeModelMarkdown 重排懒编号并折叠多余空行", () => {
+  const out = normalizeModelMarkdown(
+    "原因如下：\n\n1. 技术门槛\n1. 封装能力\n\n1. 交付能力\n\n\n结论",
+  );
+  assert.equal(
+    out,
+    "原因如下：\n\n1. 技术门槛\n2. 封装能力\n\n3. 交付能力\n\n结论",
+  );
+});
+
+test("normalizeModelMarkdown 各列表独立编号", () => {
+  const out = normalizeModelMarkdown("1. 甲\n1. 乙\n\n正文\n1. 丙\n1. 丁");
+  assert.equal(out, "1. 甲\n2. 乙\n\n正文\n1. 丙\n2. 丁");
+});
+
+test("buildChatMarkdown 对 AI 回答应用规范化", () => {
+  const markdown = buildChatMarkdown({
+    video: { bvid: "BV1xx411c7mD", title: "测试视频" },
+    messages: [
+      {
+        role: "assistant",
+        content: "原因如下：\n\n\n1. 技术门槛\n1. 封装能力",
+      },
+    ],
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /原因如下：\n\n1\. 技术门槛\n2\. 封装能力/);
+  assert.doesNotMatch(markdown, /\n\n\n\n/);
 });
