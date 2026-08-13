@@ -1,17 +1,17 @@
 :root {
-  --paper: #f6f0eb;
-  --surface: #fffdf9;
-  --surface-2: #f1e9e0;
-  --ink: #0a0a0a;
-  --ink-2: rgba(10, 10, 10, 0.62);
-  --ink-3: rgba(10, 10, 10, 0.42);
-  --line: rgba(0, 0, 0, 0.08);
-  --line-strong: rgba(0, 0, 0, 0.16);
-  --accent: #d19461;
-  --accent-strong: #b77b45;
-  --accent-soft: rgba(209, 148, 97, 0.14);
-  --ok: #5a7d5a;
-  --danger: #b4553f;
+  --paper: #f1f2f3;
+  --surface: #ffffff;
+  --surface-2: #f6f7f8;
+  --ink: #18191c;
+  --ink-2: rgba(24, 25, 28, 0.68);
+  --ink-3: #9499a0;
+  --line: #e3e5e7;
+  --line-strong: #c9ccd0;
+  --accent: #00aeec;
+  --accent-strong: #00a1d6;
+  --accent-soft: rgba(0, 174, 236, 0.12);
+  --ok: #21ba45;
+  --danger: #f85a54;
 
   --font-display: "Stack Sans Headline", "MiSans", "PingFang SC",
     "Microsoft YaHei", sans-serif;
@@ -22,6 +22,24 @@
   --radius-md: 14px;
   --shadow-rest: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+html[data-theme="dark"] {
+  --paper: #17181a;
+  --surface: #1f2022;
+  --surface-2: #26282b;
+  --ink: #f1f2f3;
+  --ink-2: rgba(241, 242, 243, 0.7);
+  --ink-3: #9499a0;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --accent: #00aeec;
+  --accent-strong: #33c1f0;
+  --accent-soft: rgba(0, 174, 236, 0.18);
+  --ok: #42c65b;
+  --danger: #ff6b66;
+  --shadow-rest: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -68,6 +86,24 @@ body::after {
   font-size: 22px;
   font-weight: 650;
   letter-spacing: -0.01em;
+}
+
+.theme-toggle {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .brand-mark {
@@ -155,7 +191,7 @@ select:focus {
   padding: 8px 20px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
   font-size: 13px;
   font-weight: 550;

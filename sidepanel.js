@@ -84,6 +84,7 @@ const explainSheetEl = $("explainSheet");
 const explainOriginalEl = $("explainOriginal");
 const explainResultEl = $("explainResult");
 const closeExplainBtn = $("closeExplainBtn");
+const themeToggleBtn = $("themeToggleBtn");
 const regenerateChatBtn = $("regenerateChatBtn");
 const exportChatBtn = $("exportChatBtn");
 const clearChatBtn = $("clearChatBtn");
@@ -159,6 +160,28 @@ function effectiveTargetLanguage() {
     return state.settings.customLanguage || "English";
   }
   return state.settings.targetLanguage;
+}
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.documentElement.dataset.theme = isDark ? "dark" : "light";
+  themeToggleBtn.textContent = isDark ? "☀" : "☾";
+}
+
+async function loadTheme() {
+  try {
+    const { theme } = await chrome.storage.local.get("theme");
+    applyTheme(theme === "dark" ? "dark" : "light");
+  } catch {
+    applyTheme("light");
+  }
+}
+
+function toggleTheme() {
+  const next =
+    document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  chrome.storage.local.set({ theme: next }).catch(() => {});
 }
 
 function renderEmpty(targetEl, glyph, lines) {
@@ -1475,6 +1498,7 @@ copyTranscriptBtn.addEventListener("click", copyTranscript);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));
 regenerateOverviewBtn.addEventListener("click", () => loadOverview({ force: true }));
 exportOverviewBtn.addEventListener("click", exportOverview);
+themeToggleBtn.addEventListener("click", toggleTheme);
 polishNoteBtn.addEventListener("click", polishCurrentNote);
 saveNoteBtn.addEventListener("click", saveCurrentNote);
 exportChatBtn.addEventListener("click", exportChat);
@@ -1528,5 +1552,6 @@ chrome.runtime.onMessage.addListener((message) => {
 // 轮询与初始化
 // ============================================================
 
+loadTheme();
 detectVideo();
 setInterval(detectVideo, 2000);

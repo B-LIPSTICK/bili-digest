@@ -14,6 +14,7 @@ const targetLanguageSelect = $("targetLanguageSelect");
 const customLanguageInput = $("customLanguageInput");
 const saveSettingsBtn = $("saveSettingsBtn");
 const savedHint = $("savedHint");
+const themeToggleBtn = $("themeToggleBtn");
 
 async function send(action, payload = {}) {
   const response = await chrome.runtime.sendMessage({ action, ...payload });
@@ -21,6 +22,28 @@ async function send(action, payload = {}) {
     throw new Error(response?.error || "请求失败");
   }
   return response;
+}
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.documentElement.dataset.theme = isDark ? "dark" : "light";
+  themeToggleBtn.textContent = isDark ? "☀" : "☾";
+}
+
+async function loadTheme() {
+  try {
+    const { theme } = await chrome.storage.local.get("theme");
+    applyTheme(theme === "dark" ? "dark" : "light");
+  } catch {
+    applyTheme("light");
+  }
+}
+
+function toggleTheme() {
+  const next =
+    document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  chrome.storage.local.set({ theme: next }).catch(() => {});
 }
 
 function updateCustomVisibility() {
@@ -87,8 +110,10 @@ async function testApiKey() {
 toggleKeyBtn.addEventListener("click", () => {
   apiKeyInput.type = apiKeyInput.type === "text" ? "password" : "text";
 });
+themeToggleBtn.addEventListener("click", toggleTheme);
 targetLanguageSelect.addEventListener("change", updateCustomVisibility);
 testKeyBtn.addEventListener("click", testApiKey);
 saveSettingsBtn.addEventListener("click", saveSettings);
 
+loadTheme();
 loadSettings();
