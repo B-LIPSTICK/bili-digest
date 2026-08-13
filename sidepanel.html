@@ -54,7 +54,10 @@
       <section id="tab-overview" class="panel">
         <div class="panel-toolbar">
           <button id="generateOverviewBtn" class="primary-btn">生成 AI 概览</button>
-          <button id="regenerateOverviewBtn" class="icon-btn" title="重新生成" aria-label="重新生成">↻</button>
+          <div class="toolbar-actions">
+            <button id="exportOverviewBtn" class="icon-btn" title="导出概览" aria-label="导出概览">↓</button>
+            <button id="regenerateOverviewBtn" class="icon-btn" title="重新生成" aria-label="重新生成">↻</button>
+          </div>
         </div>
         <div id="overviewStatus" class="status-line"></div>
         <div id="overviewContent" class="overview"></div>

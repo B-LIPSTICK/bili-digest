@@ -7,7 +7,11 @@
  * 所有数据请求都通过后台服务（background.js）统一处理。
  */
 
-import { buildMarkdown, buildChatMarkdown } from "./lib/export.js";
+import {
+  buildMarkdown,
+  buildChatMarkdown,
+  buildOverviewMarkdown,
+} from "./lib/export.js";
 
 const state = {
   video: null,
@@ -51,6 +55,7 @@ const exportBtn = $("exportBtn");
 const refreshBtn = $("refreshBtn");
 const generateOverviewBtn = $("generateOverviewBtn");
 const regenerateOverviewBtn = $("regenerateOverviewBtn");
+const exportOverviewBtn = $("exportOverviewBtn");
 const overviewStatusEl = $("overviewStatus");
 const overviewContentEl = $("overviewContent");
 const noteComposerEl = $("noteComposer");
@@ -627,6 +632,38 @@ function renderOverview() {
   overviewContentEl.appendChild(fragment);
 }
 
+async function exportOverview() {
+  if (!state.video?.bvid) {
+    showToast("先打开一个 B站视频", "error");
+    return;
+  }
+  if (!state.overview) {
+    showToast("还没有概览，先生成一次", "error");
+    return;
+  }
+  try {
+    const markdown = buildOverviewMarkdown({
+      video: state.video,
+      overview: state.overview,
+    });
+    const rawName = (state.video.title || state.video.bvid || "bili-digest")
+      .replace(/[\\/:*?"<>|]/g, "_")
+      .slice(0, 50);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${rawName}-概览.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("已导出概览");
+  } catch (error) {
+    showToast(`导出失败：${error.message}`, "error");
+  }
+}
+
 async function saveQuoteAsNote(quote) {
   if (!state.video?.bvid) {
     showToast("没有检测到视频", "error");
@@ -1146,6 +1183,7 @@ exportBtn.addEventListener("click", exportMarkdown);
 copyTranscriptBtn.addEventListener("click", copyTranscript);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));
 regenerateOverviewBtn.addEventListener("click", () => loadOverview({ force: true }));
+exportOverviewBtn.addEventListener("click", exportOverview);
 polishNoteBtn.addEventListener("click", polishCurrentNote);
 saveNoteBtn.addEventListener("click", saveCurrentNote);
 exportChatBtn.addEventListener("click", exportChat);
