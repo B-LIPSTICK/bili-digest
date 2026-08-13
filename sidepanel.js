@@ -198,8 +198,8 @@ async function detectVideo() {
 
 async function loadTranscript() {
   const { bvid, cid } = state.video;
-  if (!bvid || !cid) {
-    renderEmpty(segmentsEl, "⚠️", ["没有读取到该视频的 cid", "请刷新页面后重试"]);
+  if (!bvid) {
+    renderEmpty(segmentsEl, "📺", ["请打开一个 B站视频页面", "字幕和笔记会出现在这里"]);
     return;
   }
 
@@ -209,7 +209,8 @@ async function loadTranscript() {
   try {
     const result = await send("fetchTranscript", {
       bvid,
-      cid,
+      // cid 允许为 0：页面数据未就绪时由后台通过签名接口解析
+      cid: cid || 0,
       aid: state.video.aid,
     });
     state.segments = result.segments || [];

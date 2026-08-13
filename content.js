@@ -30,14 +30,25 @@ function getBvid() {
 
 function getCid() {
   const playinfo = window.__playinfo__;
-  const videoData = window.__INITIAL_STATE__?.videoData;
-  const cid = playinfo?.data?.cid ?? videoData?.cid ?? 0;
+  const state = window.__INITIAL_STATE__ || {};
+  const videoData = state.videoData || {};
+  const pageParam = Number(new URLSearchParams(location.search).get("p")) || 0;
+
+  let cid = playinfo?.data?.cid ?? videoData?.cid ?? state.cid ?? 0;
+  if (!cid && Array.isArray(videoData.pages)) {
+    const page =
+      pageParam > 0
+        ? videoData.pages[pageParam - 1] || videoData.pages[0]
+        : videoData.pages[0];
+    cid = page?.cid ?? 0;
+  }
   return Number(cid) || 0;
 }
 
 function getAid() {
-  const aid = window.__INITIAL_STATE__?.aid ?? window.__INITIAL_STATE__?.videoData?.aid;
-  return Number(aid) || 0;
+  const state = window.__INITIAL_STATE__ || {};
+  const videoData = state.videoData || {};
+  return Number(videoData?.aid ?? state.aid) || 0;
 }
 
 function getVideoContext() {
