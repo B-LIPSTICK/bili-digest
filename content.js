@@ -277,7 +277,7 @@ function updateButton() {
       buttonShowTimer = setTimeout(() => {
         buttonShowTimer = null;
         updateButton();
-      }, 600);
+      }, 1500);
       return;
     }
   }
