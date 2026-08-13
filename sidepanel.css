@@ -1232,6 +1232,12 @@ select:focus {
   font-size: 26px;
 }
 
+.empty-state .empty-glyph {
+  display: block;
+  margin: 0 auto 10px;
+  color: var(--accent);
+}
+
 .empty-state p {
   margin: 3px 0;
   font-size: 12.5px;

@@ -184,11 +184,14 @@ function toggleTheme() {
   chrome.storage.local.set({ theme: next }).catch(() => {});
 }
 
-function renderEmpty(targetEl, glyph, lines) {
+function renderEmpty(targetEl, glyph, lines, { glyphHtml = false } = {}) {
   targetEl.replaceChildren();
   const box = document.createElement("div");
   box.className = "empty-state";
-  box.innerHTML = `<span class="glyph">${escapeHtml(glyph)}</span>${lines
+  const glyphMarkup = glyphHtml
+    ? glyph
+    : `<span class="glyph">${escapeHtml(glyph)}</span>`;
+  box.innerHTML = `${glyphMarkup}${lines
     .map((line) => `<p>${escapeHtml(line)}</p>`)
     .join("")}`;
   targetEl.appendChild(box);
@@ -1067,10 +1070,12 @@ function formatClock(ts) {
 function renderChat() {
   chatMessagesEl.replaceChildren();
   if (!state.chatMessages.length) {
-    renderEmpty(chatMessagesEl, "💬", [
-      "就当前视频的字幕问我问题",
-      "回答只依据字幕内容，不会编造",
-    ]);
+    renderEmpty(
+      chatMessagesEl,
+      '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.4-.66L3 21l1.66-5.09A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/><circle cx="8.5" cy="11.5" r="0.85" fill="currentColor" stroke="none"/><circle cx="12.5" cy="11.5" r="0.85" fill="currentColor" stroke="none"/><circle cx="16.5" cy="11.5" r="0.85" fill="currentColor" stroke="none"/></svg>',
+      ["就当前视频的字幕问我问题", "回答只依据字幕内容，不会编造"],
+      { glyphHtml: true },
+    );
     return;
   }
 
