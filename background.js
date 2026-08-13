@@ -17,6 +17,8 @@ import {
   pickChineseTrack,
   normalizeSubtitleUrl,
   secondsToTimestamp,
+  parseTimeToSeconds,
+  snapToNearestSegment,
 } from "./lib/subtitle.js";
 import {
   normalizeProviderConfig,
@@ -389,12 +391,39 @@ async function handleGenerateOverview({ bvid, cid, segments, force = false }) {
     .join("\n");
   const prompt = await renderPrompt("analysis.md", { transcript });
   const config = normalizeProviderConfig(settings);
-  const content = await requestAiCompletion(
+  let content = await requestAiCompletion(
     config,
     [{ role: "user", content: prompt }],
     { json: true },
   );
-  const parsed = parseLooseJson(content);
+  let parsed = parseLooseJson(content);
+
+  // 模型偶尔只给两三个章节，带着上次结果让它补一次，只重试一次。
+  const validChapterCount = (value) =>
+    Array.isArray(value?.chapters)
+      ? value.chapters.filter(
+          (chapter) =>
+            String(chapter?.title ?? "").trim() &&
+            parseTimeToSeconds(chapter?.time) !== null,
+        ).length
+      : 0;
+  if (validChapterCount(parsed) < 4) {
+    content = await requestAiCompletion(
+      config,
+      [
+        { role: "user", content: prompt },
+        { role: "assistant", content },
+        {
+          role: "user",
+          content:
+            "刚才的章节太少。请重新输出完整 JSON：章节至少 6 段、从头到尾覆盖全片，time 用数字秒数或 mm:ss，对应该段第一条字幕的真实起始时间。",
+        },
+      ],
+      { json: true },
+    );
+    parsed = parseLooseJson(content);
+  }
+
   const keyPoints = Array.isArray(parsed.key_points)
     ? parsed.key_points
     : Array.isArray(parsed.keyPoints)
@@ -402,23 +431,36 @@ async function handleGenerateOverview({ bvid, cid, segments, force = false }) {
       : [];
   const keyQuotes = Array.isArray(parsed.key_quotes)
     ? parsed.key_quotes
-        .map((quote) => ({
-          text: String(quote?.text ?? "").trim(),
-          time: Number(quote?.time) || 0,
-        }))
-        .filter((quote) => quote.text)
+        .map((quote) => {
+          const text = String(quote?.text ?? "").trim();
+          if (!text) return null;
+          const seconds = parseTimeToSeconds(quote?.time);
+          return {
+            text,
+            time: seconds === null ? 0 : snapToNearestSegment(seconds, segments),
+          };
+        })
+        .filter(Boolean)
     : [];
+
+  const chapters = (Array.isArray(parsed.chapters) ? parsed.chapters : [])
+    .map((chapter) => {
+      const seconds = parseTimeToSeconds(chapter?.time);
+      if (seconds === null) return null;
+      return {
+        title: String(chapter?.title ?? "").trim(),
+        time: snapToNearestSegment(seconds, segments),
+      };
+    })
+    .filter((chapter) => chapter && chapter.title)
+    .sort((a, b) => a.time - b.time)
+    .filter(
+      (chapter, index, list) => index === 0 || list[index - 1].time !== chapter.time,
+    );
 
   const overview = {
     summary: String(parsed.summary ?? "").trim(),
-    chapters: Array.isArray(parsed.chapters)
-      ? parsed.chapters
-          .map((chapter) => ({
-            title: String(chapter.title ?? "").trim(),
-            time: Number(chapter.time) || 0,
-          }))
-          .filter((chapter) => chapter.title)
-      : [],
+    chapters,
     keyPoints: keyPoints.map((point) => String(point).trim()).filter(Boolean),
     keyQuotes,
   };
