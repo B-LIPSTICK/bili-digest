@@ -13,6 +13,7 @@ import {
   buildOverviewMarkdown,
 } from "./lib/export.js";
 import { normalizeProviderConfig, requestAiCompletionStream } from "./lib/ai.js";
+import { renderMarkdown } from "./lib/markdown.js";
 
 const state = {
   video: null,
@@ -910,9 +911,12 @@ function renderChat() {
     const isUser = message.role === "user";
     const wrapper = document.createElement("div");
     wrapper.className = `chat-msg ${isUser ? "user" : "ai"}`;
+    const contentHtml = isUser
+      ? escapeHtml(message.content)
+      : renderMarkdown(message.content);
     wrapper.innerHTML = `
       <span class="chat-msg-head">${isUser ? "你" : "AI"}</span>
-      <div class="chat-msg-text">${escapeHtml(message.content)}</div>
+      <div class="chat-msg-text">${contentHtml}</div>
     `;
     const isPending =
       !isUser &&

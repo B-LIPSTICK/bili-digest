@@ -897,6 +897,56 @@ button {
   color: var(--ink-3);
 }
 
+.chat-msg-text h1,
+.chat-msg-text h2,
+.chat-msg-text h3 {
+  margin: 7px 0 4px;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.chat-msg-text h3 {
+  font-size: 13px;
+}
+
+.chat-msg-text p {
+  margin: 4px 0;
+}
+
+.chat-msg-text p:first-child {
+  margin-top: 0;
+}
+
+.chat-msg-text p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-msg-text ul,
+.chat-msg-text ol {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.chat-msg-text li {
+  margin: 2px 0;
+}
+
+.chat-msg-text code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.chat-msg-text a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .chat-composer {
   position: sticky;
   bottom: 0;
