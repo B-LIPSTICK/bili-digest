@@ -71,6 +71,11 @@ function getVideoContext() {
     document.querySelector(".up-info .name")?.textContent?.trim() ||
     videoData?.owner?.name ||
     "";
+  const authorMid =
+    Number(videoData?.owner?.mid) ||
+    Number(window.__INITIAL_STATE__?.upInfo?.mid) ||
+    Number(window.__INITIAL_STATE__?.upData?.mid) ||
+    0;
 
   return {
     bvid: getBvid(),
@@ -78,6 +83,7 @@ function getVideoContext() {
     aid: getAid(),
     title,
     author,
+    authorMid,
     currentTime: video ? Math.floor(video.currentTime) : 0,
     paused: video ? video.paused : true,
   };
@@ -258,11 +264,11 @@ function scheduleUpdate(delay = 100) {
 }
 
 // ============================================================
-// 「记笔记」悬浮按钮 + N 快捷键
+// 「标记」悬浮按钮 + N 快捷键
 //
 // 与「精读」按钮同理：挂在 body 下，不进入 B站 Vue 管理的 DOM。
 // 点击或按 N 时，把「刚才这句话」（当前时间往前 3 秒）交给后台，
-// 由 AI 清理口头禅后自动保存为带时间戳的笔记。
+// 由后台直接保存为带时间戳的标记，不调用 AI。
 // ============================================================
 
 function ensureNoteButtonHost() {
@@ -275,8 +281,8 @@ function ensureNoteButtonHost() {
   const button = document.createElement("button");
   button.id = "bili-digest-note-button";
   button.type = "button";
-  button.title = "把刚才这句话记成笔记（快捷键 N）";
-  button.textContent = "记笔记";
+  button.title = "标记当前播放位置（快捷键 N）";
+  button.textContent = "标记";
   button.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -348,9 +354,9 @@ async function captureCurrentNote() {
     if (!result || result.success === false) {
       throw new Error(result?.error || "保存失败");
     }
-    showToast(`已记下笔记：${String(result.note?.text || "").slice(0, 42)}`);
+    showToast(`已标记：${String(result.note?.text || "").slice(0, 42)}`);
   } catch (error) {
-    showToast(`记笔记失败：${error.message}`, "error");
+    showToast(`标记失败：${error.message}`, "error");
   } finally {
     noteSaving = false;
     if (button) button.textContent = originalText;

@@ -176,14 +176,49 @@ function renderEmpty(targetEl, glyph, lines) {
 function updateHeader() {
   if (!state.video?.bvid) {
     videoTitleEl.textContent = "尚未检测到视频";
-    videoMetaEl.textContent = "";
+    videoMetaEl.replaceChildren();
     return;
   }
   videoTitleEl.textContent = state.video.title || state.video.bvid;
-  const parts = [];
-  if (state.video.author) parts.push(`UP：${state.video.author}`);
-  parts.push(state.video.bvid);
-  videoMetaEl.textContent = parts.join("  ·  ");
+
+  videoMetaEl.replaceChildren();
+  if (state.video.author) {
+    const author = document.createElement(
+      state.video.authorMid ? "a" : "span",
+    );
+    author.className = "video-meta-author";
+    author.textContent = state.video.author;
+    if (state.video.authorMid) {
+      author.href = `https://space.bilibili.com/${state.video.authorMid}`;
+      author.target = "_blank";
+      author.rel = "noopener noreferrer";
+      author.title = "打开作者主页";
+    }
+    videoMetaEl.appendChild(author);
+  }
+
+  if (state.video.bvid) {
+    if (videoMetaEl.childElementCount > 0) {
+      const separator = document.createElement("span");
+      separator.className = "video-meta-sep";
+      separator.textContent = "·";
+      videoMetaEl.appendChild(separator);
+    }
+    const bv = document.createElement("button");
+    bv.className = "video-meta-bv";
+    bv.type = "button";
+    bv.textContent = state.video.bvid;
+    bv.title = "点击复制 BV 号";
+    bv.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(state.video.bvid);
+        showToast("已复制 BV 号");
+      } catch {
+        showToast("复制失败，请手动复制", "error");
+      }
+    });
+    videoMetaEl.appendChild(bv);
+  }
 }
 
 async function detectVideo() {
@@ -748,8 +783,8 @@ function renderNotes() {
       notesListEl,
       "📝",
       state.notesScope === "all"
-        ? ["还没有任何视频的笔记", "看视频时点「记笔记」或按 N，AI 会帮你整理好当前句"]
-        : ["还没有笔记", "看视频时点「记笔记」或按 N，AI 会帮你整理好当前句"],
+        ? ["还没有任何视频的笔记", "看视频时点「标记」或按 N，把当前句原文存为标记"]
+        : ["还没有笔记", "看视频时点「标记」或按 N，把当前句原文存为标记"],
     );
     return;
   }

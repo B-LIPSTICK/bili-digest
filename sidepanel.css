@@ -141,10 +141,44 @@ body::after {
 }
 
 .video-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 5px;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-3);
+}
+
+.video-meta-author {
+  font-family: var(--font-body);
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+a.video-meta-author:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.video-meta-sep {
+  color: var(--ink-3);
+}
+
+.video-meta-bv {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.video-meta-bv:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
 }
 
 /* ============ 标签页 ============ */

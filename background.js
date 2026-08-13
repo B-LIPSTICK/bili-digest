@@ -491,35 +491,13 @@ async function handleCaptureNote({ bvid, cid, aid, seconds, videoTitle, author }
   }
   const segments = record?.segments || [];
   if (!segments.length) {
-    throw new Error("该视频没有字幕，无法自动记笔记");
+    throw new Error("该视频没有字幕，无法标记");
   }
 
-  const { before, target, after, fullContext } = buildNoteContext(segments, time);
-  let text = "";
-  const settings = await getSettings();
-  const config = normalizeProviderConfig(settings);
-  if (config.apiKey && target) {
-    try {
-      const prompt = await renderPrompt("note-capture.md", {
-        video_title: videoTitle || "",
-        before: segmentsToText(before) || "（无）",
-        target: target.content || "",
-        after: segmentsToText(after) || "（无）",
-        full_context: segmentsToText(fullContext),
-      });
-      const content = await requestAiCompletion(
-        config,
-        [{ role: "user", content: prompt }],
-        { json: true },
-      );
-      text = String(parseLooseJson(content)?.text ?? "").trim();
-    } catch (error) {
-      debugLog("AI 清理当前句失败，回退原文拼接", error);
-    }
-  }
-  if (!text) {
-    text = segmentsToText([...before, target, ...after]);
-  }
+  // 轻量标记：直接记下当前句原文，不调用 AI
+  const { before, target, after } = buildNoteContext(segments, time);
+  const text = String(target?.content ?? "").trim() ||
+    segmentsToText([...before, target, ...after]);
   if (!text) {
     throw new Error("这个时间点附近没有字幕内容");
   }
