@@ -987,7 +987,7 @@ async function captureCurrentSeconds() {
     const result = await sendToTab("getCurrentTime");
     state.noteSeconds = result.currentTime || 0;
   } catch {
-    state.noteSeconds = 0;
+    // 取不到播放时间时保留上一次的值，避免显示被误写成 00:00
   }
   noteTimeChipEl.textContent = secondsToTimestamp(state.noteSeconds);
 }
@@ -1005,6 +1005,8 @@ async function saveCurrentNote() {
 
   saveNoteBtn.disabled = true;
   try {
+    // 保存前重新取一次播放位置，保证时间戳是点击保存那一刻的
+    await captureCurrentSeconds();
     await send("saveNote", {
       videoId: state.video.bvid,
       timestamp: state.noteSeconds,
@@ -1593,3 +1595,9 @@ chrome.runtime.onMessage.addListener((message) => {
 loadTheme();
 detectVideo();
 setInterval(detectVideo, 2000);
+// 笔记标签页打开时，每秒同步一次当前播放时间
+setInterval(() => {
+  if (state.currentTab === "notes" && state.notesScope === "current") {
+    captureCurrentSeconds();
+  }
+}, 1000);
