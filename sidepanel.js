@@ -827,7 +827,7 @@ function renderNotes() {
     card.innerHTML = `
       <div class="note-head">
         <button class="note-time" data-seconds="${Number(note.timestamp) || 0}">${secondsToTimestamp(note.timestamp)}</button>
-        ${state.notesScope === "all" ? `<span class="note-video-title">${escapeHtml(note.videoTitle || note.videoId || "")}</span>` : ""}
+        ${state.notesScope === "all" ? `<button class="note-video-title" type="button">${escapeHtml(note.videoTitle || note.videoId || "")}</button>` : ""}
         <button class="note-delete" title="删除笔记">✕</button>
       </div>
       <p class="note-text">${escapeHtml(note.text)}</p>
@@ -838,6 +838,9 @@ function renderNotes() {
       </div>
     `;
     card.querySelector(".note-time").addEventListener("click", () => playNote(note));
+    card
+      .querySelector(".note-video-title")
+      ?.addEventListener("click", () => playNote(note));
     card.querySelector(".note-delete").addEventListener("click", async () => {
       try {
         await send("deleteNote", { videoId: note.videoId, noteId: note.id });
