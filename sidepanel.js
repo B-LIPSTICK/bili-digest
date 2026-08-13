@@ -81,6 +81,7 @@ const explainSheetEl = $("explainSheet");
 const explainOriginalEl = $("explainOriginal");
 const explainResultEl = $("explainResult");
 const closeExplainBtn = $("closeExplainBtn");
+const regenerateChatBtn = $("regenerateChatBtn");
 const exportChatBtn = $("exportChatBtn");
 const clearChatBtn = $("clearChatBtn");
 const chatStatusEl = $("chatStatus");
@@ -877,6 +878,29 @@ function chatKey(videoId, cid) {
   return `chat:${videoId}:${cid}`;
 }
 
+function saveChat() {
+  if (!state.video?.bvid) return;
+  chrome.storage.local
+    .set({ [chatKey(state.video.bvid, state.video.cid)]: state.chatMessages })
+    .catch(() => {});
+}
+
+function deleteChatMessage(index) {
+  if (state.chatSending) return;
+  const message = state.chatMessages[index];
+  if (!message) return;
+  state.chatMessages.splice(index, 1);
+  // 删除用户的问题时，把紧跟着的 AI 回复一并删掉，保持一问一答成对
+  if (
+    message.role === "user" &&
+    state.chatMessages[index]?.role === "assistant"
+  ) {
+    state.chatMessages.splice(index, 1);
+  }
+  saveChat();
+  renderChat();
+}
+
 async function loadChat() {
   if (!state.video?.bvid) {
     state.chatMessages = [];
@@ -915,7 +939,10 @@ function renderChat() {
       ? escapeHtml(message.content)
       : renderMarkdown(message.content);
     wrapper.innerHTML = `
-      <span class="chat-msg-head">${isUser ? "你" : "AI"}</span>
+      <div class="chat-msg-head">
+        <span>${isUser ? "你" : "AI"}</span>
+        <button class="chat-msg-delete" data-index="${index}" title="删除这条消息" type="button">✕</button>
+      </div>
       <div class="chat-msg-text">${contentHtml}</div>
     `;
     const isPending =
@@ -927,6 +954,9 @@ function renderChat() {
       wrapper.classList.add("typing");
       wrapper.querySelector(".chat-msg-text").textContent = "正在思考…";
     }
+    wrapper.querySelector(".chat-msg-delete").addEventListener("click", () => {
+      deleteChatMessage(Number(index));
+    });
     fragment.appendChild(wrapper);
   });
   chatMessagesEl.appendChild(fragment);
@@ -981,6 +1011,43 @@ function setChatError(message) {
     : `回答失败：${message}`;
 }
 
+async function requestChatReply() {
+  if (!state.settingsLoaded) {
+    await loadSettings();
+  }
+  const config = normalizeProviderConfig(state.settings);
+  if (!config.apiKey) {
+    throw new Error("请先在「设置」里填写 API Key");
+  }
+  if (!config.baseUrl || !config.model) {
+    throw new Error("请先在「设置」里填写接口地址和模型名");
+  }
+
+  const system = await renderChatSystem(chatTranscriptText());
+  // 去掉末尾的空 assistant 占位，只把已有内容的对话历史发出去
+  const history = state.chatMessages.filter((message) => message.content);
+  await requestAiCompletionStream(
+    config,
+    [{ role: "system", content: system }, ...history],
+    {
+      onDelta: (delta) => appendChatDelta(delta),
+    },
+  );
+}
+
+async function runChatRequest() {
+  try {
+    await requestChatReply();
+  } catch (error) {
+    setChatError(error?.message || "未知错误");
+  } finally {
+    state.chatSending = false;
+    sendChatBtn.disabled = false;
+    saveChat();
+    renderChat();
+  }
+}
+
 async function sendChat() {
   const text = chatInput.value.trim();
   if (!text || state.chatSending) return;
@@ -999,38 +1066,39 @@ async function sendChat() {
   state.chatMessages.push({ role: "assistant", content: "" });
   renderChat();
   chatInput.value = "";
+  await runChatRequest();
+}
 
-  const key = chatKey(state.video.bvid, state.video.cid);
-  try {
-    if (!state.settingsLoaded) {
-      await loadSettings();
-    }
-    const config = normalizeProviderConfig(state.settings);
-    if (!config.apiKey) {
-      throw new Error("请先在「设置」里填写 API Key");
-    }
-    if (!config.baseUrl || !config.model) {
-      throw new Error("请先在「设置」里填写接口地址和模型名");
-    }
-
-    const system = await renderChatSystem(chatTranscriptText());
-    // 去掉末尾的空 assistant 占位，只把已有内容的对话历史发出去
-    const history = state.chatMessages.filter((message) => message.content);
-    await requestAiCompletionStream(
-      config,
-      [{ role: "system", content: system }, ...history],
-      {
-        onDelta: (delta) => appendChatDelta(delta),
-      },
-    );
-  } catch (error) {
-    setChatError(error?.message || "未知错误");
-  } finally {
-    state.chatSending = false;
-    sendChatBtn.disabled = false;
-    chrome.storage.local.set({ [key]: state.chatMessages }).catch(() => {});
-    renderChat();
+async function regenerateChat() {
+  if (state.chatSending) return;
+  if (!state.video?.bvid) {
+    showToast("先打开一个 B站视频", "error");
+    return;
   }
+  if (!state.segments.length) {
+    showToast("没有字幕无法对话，请先加载字幕", "error");
+    return;
+  }
+
+  let lastUserIndex = -1;
+  for (let i = state.chatMessages.length - 1; i >= 0; i -= 1) {
+    if (state.chatMessages[i].role === "user") {
+      lastUserIndex = i;
+      break;
+    }
+  }
+  if (lastUserIndex === -1) {
+    showToast("没有可重新回答的问题", "error");
+    return;
+  }
+
+  // 回退：删掉上一条问题的回答（含失败占位），重新生成
+  state.chatMessages.splice(lastUserIndex + 1);
+  state.chatMessages.push({ role: "assistant", content: "" });
+  state.chatSending = true;
+  sendChatBtn.disabled = true;
+  renderChat();
+  await runChatRequest();
 }
 
 async function clearChat() {
@@ -1202,6 +1270,7 @@ saveNoteBtn.addEventListener("click", saveCurrentNote);
 exportChatBtn.addEventListener("click", exportChat);
 clearChatBtn.addEventListener("click", clearChat);
 sendChatBtn.addEventListener("click", sendChat);
+regenerateChatBtn.addEventListener("click", regenerateChat);
 chatInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
     event.preventDefault();
