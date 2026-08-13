@@ -14,9 +14,9 @@ const debugLog = (...args) => {
   if (DEBUG) console.log("[BiliDigest Content]", ...args);
 };
 
-let digestButton = null;
+let buttonHost = null;
 let lastUrl = location.href;
-let reconcileTimer = null;
+let updateTimer = null;
 
 // ============================================================
 // 视频上下文
@@ -126,23 +126,13 @@ function seekToTimestamp(seconds) {
 
 // ============================================================
 // 「精读」按钮注入
+//
+// 注意：B站整个页面（含顶部导航）由 Vue 服务端渲染并 hydration。
+// 按钮不能插进 B站自己管理的节点里，否则会产生 hydration 冲突，
+// 极端情况下会触发整页重渲染、顶部导航消失。这里改为把按钮挂在
+// body 下的独立宿主节点上，用 fixed 定位贴到视频操作栏旁边，
+// B站的重渲染永远不会碰到它。
 // ============================================================
-
-function findToolbar() {
-  const candidates = Array.from(
-    document.querySelectorAll(
-      ".video-toolbar, #toolbar, .video-toolbar-container",
-    ),
-  );
-  return (
-    candidates.find((element) => {
-      const rect = element.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return false;
-      const style = window.getComputedStyle(element);
-      return style.display !== "none" && style.visibility !== "hidden";
-    }) || null
-  );
-}
 
 function createDigestButton() {
   const button = document.createElement("button");
@@ -157,7 +147,6 @@ function createDigestButton() {
     justify-content: center;
     height: 32px;
     padding: 0 16px;
-    margin-left: 12px;
     border: none;
     border-radius: 16px;
     background: #00aeec;
@@ -168,6 +157,7 @@ function createDigestButton() {
     cursor: pointer;
     white-space: nowrap;
     flex: 0 0 auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
     transition: background 0.15s ease, transform 0.1s ease;
   `;
 
@@ -194,36 +184,73 @@ function createDigestButton() {
   return button;
 }
 
-function injectDigestButton() {
-  if (!getBvid()) {
-    digestButton?.remove();
-    digestButton = null;
-    return;
-  }
-
-  const toolbar = findToolbar();
-  if (!toolbar) {
-    debugLog("操作栏尚未渲染，稍后重试");
-    return;
-  }
-
-  if (!digestButton || !digestButton.isConnected) {
-    digestButton = createDigestButton();
-  }
-
-  const rightGroup = toolbar.querySelector(".toolbar-right");
-  if (rightGroup) {
-    rightGroup.insertBefore(digestButton, rightGroup.firstChild);
-  } else if (digestButton.parentElement !== toolbar) {
-    toolbar.appendChild(digestButton);
-  }
+function ensureButtonHost() {
+  if (buttonHost?.isConnected) return buttonHost;
+  buttonHost = document.createElement("div");
+  buttonHost.id = "bili-digest-button-host";
+  buttonHost.style.cssText = "position: fixed; z-index: 9998; display: none;";
+  buttonHost.appendChild(createDigestButton());
+  (document.body || document.documentElement).appendChild(buttonHost);
+  return buttonHost;
 }
 
-function scheduleReconcile(delay = 100) {
-  if (reconcileTimer) clearTimeout(reconcileTimer);
-  reconcileTimer = setTimeout(() => {
-    reconcileTimer = null;
-    injectDigestButton();
+/**
+ * 找一个可见的视频操作栏锚点。优先贴到右侧按钮组（投币/收藏/分享）左边，
+ * 没有右侧组时退到整个操作栏的右端。
+ */
+function findToolbarAnchor() {
+  const isVisible = (element) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0 || rect.bottom <= 0) return false;
+    const style = window.getComputedStyle(element);
+    return style.display !== "none" && style.visibility !== "hidden";
+  };
+
+  const right = Array.from(document.querySelectorAll(".video-toolbar-right")).find(
+    isVisible,
+  );
+  if (right) return { kind: "right", rect: right.getBoundingClientRect() };
+
+  const container = Array.from(
+    document.querySelectorAll(".video-toolbar, .video-toolbar-container"),
+  ).find(isVisible);
+  if (container) return { kind: "container", rect: container.getBoundingClientRect() };
+  return null;
+}
+
+function updateButton() {
+  if (!getBvid()) {
+    if (buttonHost) buttonHost.style.display = "none";
+    return;
+  }
+
+  const anchor = findToolbarAnchor();
+  if (!anchor || anchor.rect.bottom < 64) {
+    // 操作栏还没渲染，或已经滚到固定头部下方看不到：先隐藏
+    if (buttonHost) buttonHost.style.display = "none";
+    return;
+  }
+
+  const host = ensureButtonHost();
+  const button = host.firstElementChild;
+  const width = button.offsetWidth || 90;
+  const height = button.offsetHeight || 32;
+  const rawTop = anchor.rect.top + (anchor.rect.height - height) / 2;
+  const top = Math.min(Math.max(rawTop, 64), window.innerHeight - height - 8);
+  const left =
+    anchor.kind === "right"
+      ? anchor.rect.left - width - 8
+      : anchor.rect.right - width - 8;
+  host.style.top = `${top}px`;
+  host.style.left = `${Math.max(8, left)}px`;
+  host.style.display = "block";
+}
+
+function scheduleUpdate(delay = 100) {
+  if (updateTimer) clearTimeout(updateTimer);
+  updateTimer = setTimeout(() => {
+    updateTimer = null;
+    updateButton();
   }, delay);
 }
 
@@ -235,25 +262,18 @@ function watchNavigation() {
   const check = () => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      debugLog("URL 变化，重新注入按钮");
-      scheduleReconcile(500);
+      debugLog("URL 变化，重新定位按钮");
+      scheduleUpdate(500);
     }
   };
 
-  const originalPushState = history.pushState;
-  const originalReplaceState = history.replaceState;
-  history.pushState = function (...args) {
-    originalPushState.apply(this, args);
-    check();
-  };
-  history.replaceState = function (...args) {
-    originalReplaceState.apply(this, args);
-    check();
-  };
   window.addEventListener("popstate", check);
 
   // 兜底轮询：B站部分导航不走 history API
-  setInterval(check, 1000);
+  setInterval(() => {
+    check();
+    updateButton();
+  }, 1000);
 }
 
 // ============================================================
@@ -289,10 +309,10 @@ function showToast(text, kind = "info") {
 // ============================================================
 
 function init() {
-  injectDigestButton();
+  window.addEventListener("scroll", () => scheduleUpdate(100), { passive: true });
+  window.addEventListener("resize", () => scheduleUpdate(100), { passive: true });
   watchNavigation();
-  const observer = new MutationObserver(() => scheduleReconcile(200));
-  observer.observe(document.body, { childList: true, subtree: true });
+  updateButton();
 }
 
 if (document.readyState === "loading") {
