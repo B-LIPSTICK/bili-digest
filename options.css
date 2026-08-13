@@ -84,11 +84,6 @@ select + .field-label,
   margin-top: 11px;
 }
 
-input.required,
-select.required {
-  border-left: 3px solid var(--accent);
-}
-
 .key-row {
   display: flex;
   gap: 7px;

@@ -19,8 +19,8 @@ import {
   secondsToTimestamp,
 } from "./lib/subtitle.js";
 import {
-  AI_PROVIDERS,
   normalizeProviderConfig,
+  migrateLegacySettings,
   requestAiCompletion,
   parseLooseJson,
 } from "./lib/ai.js";
@@ -46,59 +46,33 @@ const store = {
 };
 
 const DEFAULT_SETTINGS = {
-  aiProvider: "deepseek",
-  providers: Object.fromEntries(
-    Object.keys(AI_PROVIDERS).map((id) => [
-      id,
-      { apiKey: "", baseUrl: "", model: "" },
-    ]),
-  ),
+  aiApiKey: "",
+  aiBaseUrl: "",
+  aiModel: "",
   targetLanguage: "English",
   customLanguage: "",
 };
 
 /**
- * 清洗单个供应商配置，只保留字符串字段。
- */
-function sanitizeProviderValues(values = {}) {
-  return {
-    apiKey: String(values.apiKey ?? "").trim(),
-    baseUrl: String(values.baseUrl ?? "").trim(),
-    model: String(values.model ?? "").trim(),
-  };
-}
-
-/**
- * 深合并设置：顶层字段覆盖，providers 按供应商逐个合并，
- * 避免保存某一个供应商时抹掉其它供应商已填的 Key。
+ * 合并并清洗设置，只保留当前 schema 需要的字段。
  */
 function mergeSettings(base, incoming = {}) {
   const merged = { ...base, ...incoming };
-  merged.providers = { ...base.providers };
-  for (const id of Object.keys(AI_PROVIDERS)) {
-    merged.providers[id] = sanitizeProviderValues({
-      ...(merged.providers[id] || {}),
-      ...(incoming?.providers?.[id] || {}),
-    });
-  }
-  if (!Object.hasOwn(AI_PROVIDERS, merged.aiProvider)) {
-    merged.aiProvider = "deepseek";
-  }
+  merged.aiApiKey = String(merged.aiApiKey ?? "").trim();
+  merged.aiBaseUrl = String(merged.aiBaseUrl ?? "").trim();
+  merged.aiModel = String(merged.aiModel ?? "").trim();
   merged.targetLanguage = String(merged.targetLanguage || "English");
   merged.customLanguage = String(merged.customLanguage || "").trim();
-  // 旧版字段已在 normalizeProviderConfig 里并入 providers.deepseek，此处不再保留
+  // 清理旧版多供应商字段，统一到单入口
+  delete merged.aiProvider;
+  delete merged.providers;
   delete merged.deepseekApiKey;
   return merged;
 }
 
 async function getSettings() {
   const stored = await store.get("settings", {});
-  const settings = mergeSettings(DEFAULT_SETTINGS, stored);
-  // 只读迁移旧版 deepseekApiKey，让所有调用方统一看到新 schema
-  if (stored?.deepseekApiKey && !settings.providers.deepseek.apiKey) {
-    settings.providers.deepseek.apiKey = String(stored.deepseekApiKey).trim();
-  }
-  return settings;
+  return mergeSettings(DEFAULT_SETTINGS, migrateLegacySettings(stored));
 }
 
 // ============================================================
@@ -597,15 +571,18 @@ async function handleSetSettings({ settings }) {
   return merged;
 }
 
-async function handleTestApiKey({ provider, apiKey, baseUrl, model }) {
-  const preset = AI_PROVIDERS[provider] || AI_PROVIDERS.custom;
-  const config = {
-    id: preset.id,
-    name: preset.name,
-    apiKey: String(apiKey ?? "").trim(),
-    baseUrl: String(baseUrl ?? preset.baseUrl ?? "").trim(),
-    model: String(model ?? preset.model ?? "").trim(),
-  };
+async function handleTestApiKey({ apiKey, baseUrl, model }) {
+  const config = normalizeProviderConfig({
+    aiApiKey: apiKey,
+    aiBaseUrl: baseUrl,
+    aiModel: model,
+  });
+  if (!config.apiKey) {
+    throw new Error("请先填写 API Key");
+  }
+  if (!config.baseUrl || !config.model) {
+    throw new Error("请先填写接口地址和模型名");
+  }
   const content = await requestAiCompletion(
     config,
     [{ role: "user", content: "请只回复两个字：正常" }],
@@ -646,7 +623,6 @@ async function route(message, sender) {
       return { settings: await handleSetSettings({ settings: message.settings }) };
     case "testApiKey":
       return await handleTestApiKey({
-        provider: message.provider,
         apiKey: message.apiKey,
         baseUrl: message.baseUrl,
         model: message.model,

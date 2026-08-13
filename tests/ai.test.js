@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  AI_PROVIDERS,
+  detectProviderKind,
+  migrateLegacySettings,
   normalizeProviderConfig,
   completionUrl,
   buildCompletionBody,
@@ -11,53 +12,49 @@ import {
 
 const MESSAGES = [{ role: "user", content: "你好" }];
 
-test("normalizeProviderConfig 补齐预设默认值", () => {
-  const config = normalizeProviderConfig({ aiProvider: "moonshot" });
-  assert.equal(config.id, "moonshot");
-  assert.equal(config.apiKey, "");
-  assert.equal(config.baseUrl, AI_PROVIDERS.moonshot.baseUrl);
-  assert.equal(config.model, AI_PROVIDERS.moonshot.model);
+test("detectProviderKind 按 Base URL 识别服务", () => {
+  assert.equal(detectProviderKind("https://api.deepseek.com"), "deepseek");
+  assert.equal(detectProviderKind("https://api.anthropic.com/v1/"), "anthropic");
+  assert.equal(detectProviderKind("https://api.openai.com/v1"), "openai");
+  assert.equal(detectProviderKind("http://localhost:11434/v1"), "openai");
 });
 
-test("normalizeProviderConfig 迁移旧版 deepseekApiKey", () => {
-  const config = normalizeProviderConfig({
-    deepseekApiKey: "sk-legacy",
-  });
-  assert.equal(config.id, "deepseek");
-  assert.equal(config.apiKey, "sk-legacy");
-  assert.equal(config.baseUrl, AI_PROVIDERS.deepseek.baseUrl);
-  assert.equal(config.model, AI_PROVIDERS.deepseek.model);
-});
-
-test("normalizeProviderConfig 优先使用用户保存的覆盖值", () => {
-  const config = normalizeProviderConfig({
-    aiProvider: "deepseek",
+test("migrateLegacySettings 迁移旧版供应商配置", () => {
+  const migrated = migrateLegacySettings({
+    aiProvider: "moonshot",
     providers: {
-      deepseek: {
-        apiKey: "sk-new",
-        baseUrl: "https://example.com/v1",
-        model: "custom-model",
-      },
+      moonshot: { apiKey: "sk-kimi", baseUrl: "", model: "" },
     },
   });
-  assert.equal(config.apiKey, "sk-new");
-  assert.equal(config.baseUrl, "https://example.com/v1");
-  assert.equal(config.model, "custom-model");
+  assert.equal(migrated.aiApiKey, "sk-kimi");
+  assert.equal(migrated.aiBaseUrl, "https://api.moonshot.cn/v1");
+  assert.equal(migrated.aiModel, "kimi-k3");
 });
 
-test("normalizeProviderConfig 自定义端点必须由用户显式提供", () => {
-  const config = normalizeProviderConfig({
-    aiProvider: "custom",
-    providers: {
-      custom: {
-        apiKey: "ollama",
-        baseUrl: "http://localhost:11434/v1",
-        model: "llama3",
-      },
-    },
+test("migrateLegacySettings 迁移旧版 deepseekApiKey", () => {
+  const migrated = migrateLegacySettings({
+    deepseekApiKey: "sk-old",
+    providers: { deepseek: { apiKey: "", baseUrl: "", model: "" } },
   });
-  assert.equal(config.baseUrl, "http://localhost:11434/v1");
-  assert.equal(config.model, "llama3");
+  assert.equal(migrated.aiApiKey, "sk-old");
+  assert.equal(migrated.aiBaseUrl, "https://api.deepseek.com");
+  assert.equal(migrated.aiModel, "deepseek-v4-flash");
+});
+
+test("migrateLegacySettings 已是新 schema 时保持不变", () => {
+  const settings = { aiApiKey: "sk-new", aiBaseUrl: "https://x", aiModel: "m" };
+  assert.equal(migrateLegacySettings(settings), settings);
+});
+
+test("normalizeProviderConfig 解析新 schema 并推断类型", () => {
+  const config = normalizeProviderConfig({
+    aiApiKey: "sk-a",
+    aiBaseUrl: "https://api.anthropic.com/v1",
+    aiModel: "claude-sonnet-4-5",
+  });
+  assert.equal(config.apiKey, "sk-a");
+  assert.equal(config.model, "claude-sonnet-4-5");
+  assert.equal(config.kind, "anthropic");
 });
 
 test("completionUrl 去掉末尾斜杠再拼接", () => {
@@ -73,27 +70,33 @@ test("completionUrl 去掉末尾斜杠再拼接", () => {
 
 test("buildCompletionBody 仅 DeepSeek 带 thinking", () => {
   const deepseek = buildCompletionBody(
-    { id: "deepseek", model: "deepseek-v4-flash" },
+    { kind: "deepseek", model: "deepseek-v4-flash" },
     MESSAGES,
   );
   assert.deepEqual(deepseek.thinking, { type: "disabled" });
   assert.equal(deepseek.response_format, undefined);
 
-  const openai = buildCompletionBody(
-    { id: "openai", model: "gpt-5.6-terra" },
+  const anthropic = buildCompletionBody(
+    { kind: "anthropic", model: "claude-sonnet-4-5" },
     MESSAGES,
   );
-  assert.equal(openai.thinking, undefined);
+  assert.equal(anthropic.thinking, undefined);
 });
 
-test("buildCompletionBody json 模式追加 response_format", () => {
-  const body = buildCompletionBody(
-    { id: "qwen", model: "qwen-plus" },
+test("buildCompletionBody json 模式：OpenAI 兼容加 response_format，Anthropic 不加", () => {
+  const openai = buildCompletionBody(
+    { kind: "openai", model: "gpt-5.6-terra" },
     MESSAGES,
     { json: true },
   );
-  assert.deepEqual(body.response_format, { type: "json_object" });
-  assert.equal(body.thinking, undefined);
+  assert.deepEqual(openai.response_format, { type: "json_object" });
+
+  const anthropic = buildCompletionBody(
+    { kind: "anthropic", model: "claude-sonnet-4-5" },
+    MESSAGES,
+    { json: true },
+  );
+  assert.equal(anthropic.response_format, undefined);
 });
 
 test("describeHttpError 覆盖常见状态码", () => {

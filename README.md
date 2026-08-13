@@ -11,7 +11,7 @@ Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，�
 - 点任意一条字幕，让 AI 解释它的含义和背景
 - 看视频时点右上角「记笔记」或按 N：AI 自动把刚才那句话整理成干净笔记（清理口头禅），不用暂停视频
 - 笔记支持手写 + AI 润色，可复制文本 / 复制时间戳链接 / 一键回到视频位置，还能切换查看当前视频或全部视频的笔记
-- 自带密钥（BYOK）：使用你自己的 API Key，支持 DeepSeek、OpenAI、Kimi、GLM、通义千问和任意 OpenAI 兼容端点
+- 自带密钥（BYOK）：一个「OpenAI 兼容」入口，OpenAI、Anthropic、DeepSeek、Kimi、GLM、通义千问、本地模型都能接
 
 ## 截图
 
@@ -35,22 +35,20 @@ Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，�
 
 ## 配置 AI 服务
 
-AI 功能（翻译、概览、逐句解释）需要你自己的 API Key，可以任选一家：
+AI 功能（翻译、概览、逐句解释、笔记润色、自动记笔记）需要你自己的 API Key。设置页只提供一个「OpenAI 兼容」入口：填接口地址、模型名和 Key，任何兼容 Chat Completions 的服务都能用：
 
-| 服务商 | 接口地址 | 默认模型 | 申请入口 |
+| 服务 | 接口地址示例 | 模型示例 | 申请入口 |
 | --- | --- | --- | --- |
-| DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash` | [开放平台](https://platform.deepseek.com/) |
 | OpenAI | `https://api.openai.com/v1` | `gpt-5.6-terra` | [开放平台](https://platform.openai.com/) |
-| Moonshot Kimi | `https://api.moonshot.cn/v1` | `kimi-k3` | [开放平台](https://platform.moonshot.cn/) |
-| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-5.2` | [开放平台](https://open.bigmodel.cn/) |
-| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | [百炼控制台](https://dashscope.console.aliyun.com/) |
-| 自定义 | 你填写 | 你填写 | 任意 OpenAI 兼容端点，如本地 Ollama、vLLM |
+| Anthropic | `https://api.anthropic.com/v1` | `claude-sonnet-4-5` | [控制台](https://console.anthropic.com/) |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash` | [开放平台](https://platform.deepseek.com/) |
+| 本地模型 | `http://localhost:11434/v1` | `llama3`（Ollama） | — |
 
 1. 到对应平台注册并创建 API Key；
-2. 在扩展侧边栏的「设置」页选择服务商并粘贴 Key（或右键扩展图标 → 选项）；
+2. 在扩展侧边栏的「设置」页填入接口地址、模型和 Key（或右键扩展图标 → 选项）；
 3. 点「测试连接」确认可用。
 
-预设服务商只需填 Key，接口地址和模型已按官方默认值预填，想换模型可以直接覆盖；选择「自定义」时需要同时填写接口地址、模型和 Key。**不要把 Key 贴进聊天、截图或任何公开的地方。**
+说明：Anthropic 用的是官方 OpenAI SDK 兼容端点（官方标注为测试用途，按正常价格计费）；扩展会按接口地址自动带上各家需要的参数，例如 DeepSeek 的非思考模式。**不要把 Key 贴进聊天、截图或任何公开的地方。**
 
 ## 使用前提
 

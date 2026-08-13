@@ -14,9 +14,7 @@
       </header>
 
       <section class="group">
-        <h2>AI 服务</h2>
-        <label class="field-label" for="providerSelect">服务商</label>
-        <select id="providerSelect"></select>
+        <h2>AI 接口（OpenAI 兼容）</h2>
         <label class="field-label" for="apiKeyInput">API Key</label>
         <div class="key-row">
           <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…" />
@@ -31,7 +29,7 @@
         </div>
         <div id="keyTestResult" class="hint"></div>
         <p class="hint dim">
-          预设服务商只需填 API Key，接口地址和模型已按官方默认值预填、可按需覆盖；自定义端点需三项都填。密钥只保存在本机 Chrome 存储中。
+          任意 OpenAI 兼容接口都可以：OpenAI <code>https://api.openai.com/v1</code>、Anthropic <code>https://api.anthropic.com/v1</code>（官方兼容端点，标注为测试用途）、DeepSeek <code>https://api.deepseek.com</code>，或本地 Ollama <code>http://localhost:11434/v1</code>。三项填完点「测试连接」。密钥只保存在本机 Chrome 存储中。
         </p>
       </section>
 

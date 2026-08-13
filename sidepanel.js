@@ -7,7 +7,6 @@
  * 所有数据请求都通过后台服务（background.js）统一处理。
  */
 
-import { AI_PROVIDERS } from "./lib/ai.js";
 import { buildMarkdown } from "./lib/export.js";
 
 const state = {
@@ -18,8 +17,9 @@ const state = {
   translating: false,
   overview: null,
   settings: {
-    aiProvider: "deepseek",
-    providers: {},
+    aiApiKey: "",
+    aiBaseUrl: "",
+    aiModel: "",
     targetLanguage: "English",
     customLanguage: "",
   },
@@ -56,7 +56,6 @@ const polishNoteBtn = $("polishNoteBtn");
 const saveNoteBtn = $("saveNoteBtn");
 const notesStatusEl = $("notesStatus");
 const notesListEl = $("notesList");
-const providerSelect = $("providerSelect");
 const apiKeyInput = $("apiKeyInput");
 const toggleKeyBtn = $("toggleKeyBtn");
 const testKeyBtn = $("testKeyBtn");
@@ -71,9 +70,6 @@ const explainSheetEl = $("explainSheet");
 const explainOriginalEl = $("explainOriginal");
 const explainResultEl = $("explainResult");
 const closeExplainBtn = $("closeExplainBtn");
-
-// 每个供应商一组草稿值，切换供应商时互不覆盖
-const providerDraft = {};
 
 // ============================================================
 // 工具函数
@@ -802,52 +798,13 @@ async function polishCurrentNote() {
 // 设置
 // ============================================================
 
-function presetFor(id) {
-  return AI_PROVIDERS[id] || AI_PROVIDERS.custom;
-}
-
-function readCurrentProviderDraft() {
-  providerDraft[providerSelect.value] = {
-    apiKey: apiKeyInput.value.trim(),
-    baseUrl: baseUrlInput.value.trim(),
-    model: modelInput.value.trim(),
-  };
-}
-
-function fillProviderFields(id) {
-  const preset = presetFor(id);
-  const saved = providerDraft[id] || {};
-  apiKeyInput.value = saved.apiKey || "";
-  baseUrlInput.value = saved.baseUrl || preset.baseUrl || "";
-  modelInput.value = saved.model || preset.model || "";
-  baseUrlInput.placeholder = preset.baseUrl || "https://your-endpoint/v1";
-  modelInput.placeholder = preset.model || "模型名称";
-  const isCustom = id === "custom";
-  baseUrlInput.classList.toggle("required", isCustom);
-  modelInput.classList.toggle("required", isCustom);
-}
-
-function buildProviderOptions() {
-  providerSelect.replaceChildren();
-  for (const preset of Object.values(AI_PROVIDERS)) {
-    const option = document.createElement("option");
-    option.value = preset.id;
-    option.textContent = preset.name;
-    providerSelect.appendChild(option);
-  }
-}
-
 async function loadSettings() {
   try {
     const result = await send("getSettings");
     state.settings = result.settings;
-    for (const [id, values] of Object.entries(state.settings.providers || {})) {
-      providerDraft[id] = { ...values };
-    }
-    providerSelect.value = Object.hasOwn(AI_PROVIDERS, state.settings.aiProvider)
-      ? state.settings.aiProvider
-      : "deepseek";
-    fillProviderFields(providerSelect.value);
+    apiKeyInput.value = state.settings.aiApiKey || "";
+    baseUrlInput.value = state.settings.aiBaseUrl || "";
+    modelInput.value = state.settings.aiModel || "";
     targetLanguageSelect.value = state.settings.targetLanguage || "English";
     customLanguageInput.value = state.settings.customLanguage || "";
     updateCustomVisibility();
@@ -865,10 +822,10 @@ function updateCustomVisibility() {
 }
 
 async function saveSettings() {
-  readCurrentProviderDraft();
   const settings = {
-    aiProvider: providerSelect.value,
-    providers: providerDraft,
+    aiApiKey: apiKeyInput.value.trim(),
+    aiBaseUrl: baseUrlInput.value.trim(),
+    aiModel: modelInput.value.trim(),
     targetLanguage: targetLanguageSelect.value,
     customLanguage: customLanguageInput.value.trim(),
   };
@@ -886,13 +843,10 @@ async function testApiKey() {
   keyTestResultEl.textContent = "正在测试…";
   testKeyBtn.disabled = true;
   try {
-    readCurrentProviderDraft();
-    const preset = presetFor(providerSelect.value);
     const result = await send("testApiKey", {
-      provider: providerSelect.value,
       apiKey: apiKeyInput.value.trim(),
-      baseUrl: baseUrlInput.value.trim() || preset.baseUrl || "",
-      model: modelInput.value.trim() || preset.model || "",
+      baseUrl: baseUrlInput.value.trim(),
+      model: modelInput.value.trim(),
     });
     keyTestResultEl.className = "hint ok";
     keyTestResultEl.textContent = `连接成功：${result.text}`;
@@ -958,11 +912,6 @@ targetLanguageSelect.addEventListener("change", updateCustomVisibility);
 document.querySelectorAll(".notes-scope .mode").forEach((button) => {
   button.addEventListener("click", () => switchNotesScope(button.dataset.scope));
 });
-providerSelect.addEventListener("change", () => {
-  readCurrentProviderDraft();
-  fillProviderFields(providerSelect.value);
-});
-buildProviderOptions();
 
 toggleKeyBtn.addEventListener("click", () => {
   const showing = apiKeyInput.type === "text";

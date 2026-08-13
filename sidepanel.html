@@ -75,9 +75,7 @@
 
       <section id="tab-settings" class="panel">
         <div class="settings-group">
-          <h2 class="group-title">AI 服务</h2>
-          <label class="field-label" for="providerSelect">服务商</label>
-          <select id="providerSelect"></select>
+          <h2 class="group-title">AI 接口（OpenAI 兼容）</h2>
           <label class="field-label" for="apiKeyInput">API Key</label>
           <div class="key-row">
             <input
@@ -110,7 +108,7 @@
           </div>
           <div id="keyTestResult" class="hint"></div>
           <p class="hint dim">
-            预设服务商只需填 API Key，接口地址和模型已按官方默认值预填；自定义端点需三项都填。密钥只保存在本机 Chrome 存储中。
+            任意 OpenAI 兼容接口都可以，比如 OpenAI <code>https://api.openai.com/v1</code>、Anthropic <code>https://api.anthropic.com/v1</code>（官方兼容端点，测试用途）、DeepSeek <code>https://api.deepseek.com</code> 或本地 Ollama。三项都填，密钥只保存在本机。
           </p>
         </div>
 
