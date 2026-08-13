@@ -24,7 +24,8 @@ $items = @(
   "fonts",
   "README.md",
   "LICENSE",
-  "PRIVACY.md"
+  "PRIVACY.md",
+  "SECURITY.md"
 ) | ForEach-Object { Join-Path $root $_ }
 
 Compress-Archive -Path $items -DestinationPath $out -Force

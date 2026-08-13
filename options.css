@@ -106,14 +106,6 @@ body::after {
   color: var(--accent);
 }
 
-.brand-mark {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--accent);
-}
-
 .group {
   margin-bottom: 24px;
   padding: 18px 20px;
