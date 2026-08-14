@@ -5,8 +5,11 @@
 # Bili Digest 哔哩精读
 
 > 把每一个 B站视频，变成一份可以深度学习的资料。
+> Turn every Bilibili video into study material worth keeping.
 
 Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，把**字幕、双语对照、AI 概览、逐句解释和带时间戳的笔记**全部收进侧边栏，不用离开视频页面，也不丢失学习进度。
+
+**English:** Bili Digest is a Chrome side panel extension that keeps transcripts, bilingual subtitles, AI overviews, sentence explanations, timestamped notes, and subtitle-based Q&A in one sidebar while you watch a Bilibili video. Bring your own key — any OpenAI-compatible endpoint works (OpenAI, Anthropic, DeepSeek, Ollama, and more).
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-00aeec?style=flat-square)
 ![License MIT](https://img.shields.io/badge/License-MIT-fb7299?style=flat-square)
