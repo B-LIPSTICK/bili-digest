@@ -4,6 +4,7 @@ import {
   buildMarkdown,
   buildChatMarkdown,
   buildOverviewMarkdown,
+  buildNotesMarkdown,
   normalizeModelMarkdown,
 } from "../lib/export.js";
 
@@ -156,4 +157,39 @@ test("buildChatMarkdown 对 AI 回答应用规范化", () => {
   });
   assert.match(markdown, /原因如下：\n\n1\. 技术门槛\n2\. 封装能力/);
   assert.doesNotMatch(markdown, /\n\n\n\n/);
+});
+
+test("buildNotesMarkdown 本视频视图输出链接与时间戳", () => {
+  const markdown = buildNotesMarkdown({
+    video: { bvid: "BV1xx411c7mD", title: "测试视频" },
+    notes: [{ videoId: "BV1xx411c7mD", timestamp: 125, text: "这里的推导很关键" }],
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /^# 笔记 · 测试视频/);
+  assert.match(markdown, /https:\/\/www\.bilibili\.com\/video\/BV1xx411c7mD/);
+  assert.match(markdown, /\[02:05\]\([^)]+\?t=125\) 这里的推导很关键/);
+  assert.doesNotMatch(markdown, /未知视频/);
+});
+
+test("buildNotesMarkdown 全部视频视图带上视频标题前缀", () => {
+  const markdown = buildNotesMarkdown({
+    video: {},
+    notes: [
+      {
+        videoId: "BV1aa",
+        videoTitle: "第一个视频",
+        timestamp: 10,
+        text: "笔记甲",
+      },
+    ],
+    scope: "all",
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /^# B站笔记 · 全部视频/);
+  assert.match(markdown, /第一个视频 · 笔记甲/);
+});
+
+test("buildNotesMarkdown 空笔记给占位说明", () => {
+  const markdown = buildNotesMarkdown({ video: {}, notes: [], exportedAt: FIXED_DATE });
+  assert.match(markdown, /暂无笔记/);
 });

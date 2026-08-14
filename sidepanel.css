@@ -824,6 +824,14 @@ button {
 }
 
 .notes-scope {
+  margin-top: 0;
+}
+
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-top: 12px;
 }
 

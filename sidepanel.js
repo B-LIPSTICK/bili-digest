@@ -11,6 +11,7 @@ import {
   buildMarkdown,
   buildChatMarkdown,
   buildOverviewMarkdown,
+  buildNotesMarkdown,
 } from "./lib/export.js";
 import { normalizeProviderConfig, requestAiCompletionStream } from "./lib/ai.js";
 import { renderMarkdown } from "./lib/markdown.js";
@@ -98,6 +99,7 @@ const closeExplainBtn = $("closeExplainBtn");
 const themeToggleBtn = $("themeToggleBtn");
 const regenerateChatBtn = $("regenerateChatBtn");
 const exportChatBtn = $("exportChatBtn");
+const exportNotesBtn = $("exportNotesBtn");
 const clearChatBtn = $("clearChatBtn");
 const chatStatusEl = $("chatStatus");
 const chatMessagesEl = $("chatMessages");
@@ -828,6 +830,42 @@ async function exportOverview() {
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     showToast("已导出概览");
+  } catch (error) {
+    showToast(`导出失败：${error.message}`, "error");
+  }
+}
+
+async function exportNotes() {
+  const notes = [...state.notes];
+  if (notes.length === 0) {
+    showToast("没有笔记可导出", "error");
+    return;
+  }
+  const scope = state.notesScope;
+  if (scope === "current") {
+    notes.sort((a, b) => a.timestamp - b.timestamp);
+  }
+  try {
+    const markdown = buildNotesMarkdown({
+      video: state.video || {},
+      notes,
+      scope,
+    });
+    const rawName =
+      scope === "all"
+        ? "bili-digest-全部笔记"
+        : state.video?.title || state.video?.bvid || "bili-digest";
+    const safeName = rawName.replace(/[\\/:*?"<>|]/g, "_").slice(0, 50);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeName}-笔记.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("已导出笔记");
   } catch (error) {
     showToast(`导出失败：${error.message}`, "error");
   }
@@ -1624,6 +1662,7 @@ themeToggleBtn.addEventListener("click", toggleTheme);
 polishNoteBtn.addEventListener("click", polishCurrentNote);
 saveNoteBtn.addEventListener("click", saveCurrentNote);
 exportChatBtn.addEventListener("click", exportChat);
+exportNotesBtn.addEventListener("click", exportNotes);
 clearChatBtn.addEventListener("click", clearChat);
 sendChatBtn.addEventListener("click", sendChat);
 regenerateChatBtn.addEventListener("click", regenerateChat);
