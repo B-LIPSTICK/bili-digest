@@ -159,6 +159,4 @@ npm run package # 打包成 dist/bili-digest-vX.Y.Z.zip
 
 ## 友链
 
-- [LINUX DO](https://linux.do)：开放的 Linux 与开发者社区，本项目在此发布与交流。
-
-欢迎交换友链，感谢每一位愿意把项目分享出去的朋友。
+- [LINUX DO](https://linux.do/)：开放的开发者社区，本项目在此发布与交流。
