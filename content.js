@@ -8,7 +8,7 @@
  * 4. 显示笔记保存成功等轻量提示。
  */
 
-const DEBUG = false;
+const DEBUG = true;
 
 const debugLog = (...args) => {
   if (DEBUG) console.log("[BiliDigest Content]", ...args);
@@ -88,7 +88,7 @@ function getVideoContext() {
     ) ||
     0;
 
-  return {
+  const context = {
     bvid: getBvid(),
     cid: getCid(),
     aid: getAid(),
@@ -99,6 +99,8 @@ function getVideoContext() {
     currentTime: video ? Math.floor(video.currentTime) : 0,
     paused: video ? video.paused : true,
   };
+  debugLog("getVideoContext", context);
+  return context;
 }
 
 // ============================================================
