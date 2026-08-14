@@ -1,8 +1,23 @@
+<div align="center">
+
+<img src="icons/icon128.png" width="96" alt="Bili Digest 哔哩精读图标">
+
 # Bili Digest 哔哩精读
 
 > 把每一个 B站视频，变成一份可以深度学习的资料。
 
 Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，把**字幕、双语对照、AI 概览、逐句解释和带时间戳的笔记**全部收进侧边栏，不用离开视频页面，也不丢失学习进度。
+
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-00aeec?style=flat-square)
+![License MIT](https://img.shields.io/badge/License-MIT-fb7299?style=flat-square)
+![BYOK](https://img.shields.io/badge/API-自带密钥-8a9aa8?style=flat-square)
+![Chrome](https://img.shields.io/badge/Chrome-%E2%89%A5116-4285f4?style=flat-square)
+
+</div>
+
+---
+
+## 功能
 
 - 把字幕变成可阅读、可点击跳转的学习文本
 - 日间 / 夜间主题一键切换，整套界面用 B站品牌配色
