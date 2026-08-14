@@ -1070,7 +1070,10 @@ function renderNotes() {
 
 async function playNote(note) {
   const seconds = Number(note.timestamp) || 0;
-  if (state.video?.bvid === note.videoId) {
+  if (
+    state.video?.bvid === note.videoId &&
+    Number(note.page || 1) === Number(state.video?.page || 1)
+  ) {
     seekTo(seconds);
     return;
   }
@@ -1135,6 +1138,7 @@ async function saveCurrentNote() {
       timestamp: state.noteSeconds,
       videoTitle: state.video.title,
       author: state.video.author,
+      page: state.video.page || 1,
       text,
     });
     noteTextEl.value = "";

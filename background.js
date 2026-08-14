@@ -201,6 +201,25 @@ async function handleGetVideoInfo(bvid, page = 0) {
   };
 }
 
+/**
+ * 多 P 视频以官方 view 接口按 p 参数解析 aid/cid。
+ * 页面首屏缓存里的 cid 在切 P 后可能仍是 P1，不能直接信。
+ */
+async function resolvePartIdentity(bvid, cid, aid, page) {
+  if (Number(page) <= 1) {
+    return { cid: Number(cid) || 0, aid: String(aid || "") };
+  }
+  try {
+    const info = await handleGetVideoInfo(bvid, Number(page));
+    return {
+      cid: Number(info.cid) || Number(cid) || 0,
+      aid: String(info.aid || aid || ""),
+    };
+  } catch {
+    return { cid: Number(cid) || 0, aid: String(aid || "") };
+  }
+}
+
 async function fetchSubtitleTracks(bvid, cid, aid = "", page = 0) {
   if (!bvid) throw new Error("未检测到视频 BV 号");
   if (!aid || !cid) {
@@ -269,6 +288,7 @@ async function fetchTranscriptFromServer(
 }
 
 async function handleFetchTranscript({ bvid, cid, aid, lan, page }) {
+  ({ cid, aid } = await resolvePartIdentity(bvid, cid, aid, page));
   let trackLan = String(lan || "");
   if (!trackLan) {
     const { tracks } = await fetchSubtitleTracks(bvid, cid, aid, page);
@@ -533,19 +553,28 @@ function notesKey(videoId) {
   return `notes:${videoId}`;
 }
 
-async function handleSaveNote({ videoId, timestamp, videoTitle, author, text }) {
+async function handleSaveNote({
+  videoId,
+  timestamp,
+  videoTitle,
+  author,
+  text,
+  page = 0,
+}) {
   if (!videoId) throw new Error("缺少视频 ID");
   const notes = await store.get(notesKey(videoId), []);
   const seconds = Math.max(0, Number(timestamp) || 0);
+  const pageQuery = Number(page) > 1 ? `?p=${Number(page)}&t=${seconds}` : `?t=${seconds}`;
   const note = {
     id: crypto.randomUUID(),
     videoId,
     timestamp: seconds,
+    page: Number(page) || 1,
     videoTitle: String(videoTitle ?? ""),
     author: String(author ?? ""),
     text: String(text ?? "").trim(),
     createdAt: Date.now(),
-    url: `https://www.bilibili.com/video/${videoId}?t=${seconds}`,
+    url: `https://www.bilibili.com/video/${videoId}${pageQuery}`,
   };
   notes.push(note);
   await store.set(notesKey(videoId), notes);
@@ -562,6 +591,7 @@ async function handleCaptureNote({
   author,
 }) {
   if (!bvid) throw new Error("未检测到视频");
+  ({ cid, aid } = await resolvePartIdentity(bvid, cid, aid, page));
   const time = Math.max(0, Number(seconds) || 0);
 
   const activeLan = await store.get(activeTrackKey(bvid, cid), "");
@@ -589,6 +619,7 @@ async function handleCaptureNote({
     timestamp: time,
     videoTitle,
     author,
+    page,
     text: text.slice(0, 3000),
   });
   // 通知侧边栏刷新（侧边栏未打开时忽略失败）
