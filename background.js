@@ -211,8 +211,11 @@ async function resolvePartIdentity(bvid, cid, aid, page) {
   }
   try {
     const info = await handleGetVideoInfo(bvid, Number(page));
+    // view 接口的顶层 cid 不随 p 变化，真正的分集 cid 在 pages 列表里
+    const pages = Array.isArray(info.pages) ? info.pages : [];
+    const target = pages[Number(page) - 1];
     return {
-      cid: Number(info.cid) || Number(cid) || 0,
+      cid: Number(target?.cid) || Number(cid) || 0,
       aid: String(info.aid || aid || ""),
     };
   } catch {
@@ -765,12 +768,19 @@ async function route(message, sender) {
         segments: message.segments,
         force: Boolean(message.force),
       });
-    case "setActiveTrack":
+    case "setActiveTrack": {
+      const identity = await resolvePartIdentity(
+        message.bvid,
+        message.cid,
+        message.aid,
+        message.page,
+      );
       await store.set(
-        activeTrackKey(message.bvid, message.cid),
+        activeTrackKey(message.bvid, identity.cid),
         String(message.lan || ""),
       );
       return { ok: true };
+    }
     case "explainSelection":
       return await handleExplain({ text: message.text, context: message.context });
     case "polishNote":

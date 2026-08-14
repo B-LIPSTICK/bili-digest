@@ -292,7 +292,8 @@ async function detectVideo() {
     const changed =
       !state.video ||
       state.video.bvid !== context.bvid ||
-      state.video.cid !== context.cid;
+      state.video.cid !== context.cid ||
+      Number(state.video.page || 1) !== Number(context.page || 1);
 
     if (changed) {
       state.video = context;
@@ -397,9 +398,13 @@ async function loadTranscript({ lan } = {}) {
     renderTrackSelect();
     const trackLabel = state.track?.lan_doc || state.track?.lan || "字幕";
     transcriptStatusEl.textContent = `已加载 ${state.segments.length} 条字幕 · ${trackLabel}`;
-    send("setActiveTrack", { bvid, cid, lan: state.track?.lan || "" }).catch(
-      () => {},
-    );
+    send("setActiveTrack", {
+      bvid,
+      cid,
+      aid: state.video.aid,
+      page: state.video.page || 1,
+      lan: state.track?.lan || "",
+    }).catch(() => {});
     renderSegments();
     updateTranslateButton();
   } catch (error) {

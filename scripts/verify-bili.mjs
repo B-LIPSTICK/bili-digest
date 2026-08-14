@@ -13,9 +13,10 @@ import { encWbi, getMixinKey, extractWbiKey } from "../lib/wbi.js";
 
 const bvid = process.argv[2];
 if (!bvid) {
-  console.error("用法：node scripts/verify-bili.mjs <BV号>");
+  console.error("用法：node scripts/verify-bili.mjs <BV号> [p]");
   process.exit(1);
 }
+const pageParam = process.argv[3];
 
 async function getJson(url) {
   const cookies = [];
@@ -60,8 +61,9 @@ const nav = await getJson("https://api.bilibili.com/x/web-interface/nav");
 const imgKey = extractWbiKey(nav?.data?.wbi_img?.img_url);
 const subKey = extractWbiKey(nav?.data?.wbi_img?.sub_url);
 const mixinKey = getMixinKey(imgKey, subKey);
-const signed = await encWbi({ bvid }, mixinKey);
-const viewQuery = new URLSearchParams({ bvid, w_rid: signed.w_rid, wts: String(signed.wts) });
+const viewParams = pageParam ? { bvid, p: pageParam } : { bvid };
+const signed = await encWbi(viewParams, mixinKey);
+const viewQuery = new URLSearchParams({ ...viewParams, w_rid: signed.w_rid, wts: String(signed.wts) });
 const view = await getJson(
   `https://api.bilibili.com/x/web-interface/wbi/view?${viewQuery.toString()}`,
 );
@@ -70,6 +72,12 @@ const cid = view.data.cid;
 const aid = String(view.data.aid || "");
 console.log(`[2] 视频：${view.data.title}`);
 console.log(`    UP：${view.data.owner?.name}，aid=${aid}，cid=${cid}，时长=${view.data.duration}s`);
+if (Array.isArray(view.data.pages)) {
+  console.log(`    分 P 数：${view.data.pages.length}，当前 p=${pageParam || 1}`);
+  for (const page of view.data.pages.slice(0, 12)) {
+    console.log(`      P${page.page} cid=${page.cid} ${page.part}`);
+  }
+}
 
 // 3. 字幕轨道：主来源 wbi/v2（aid+cid），失败回退 player/v2
 let player;
