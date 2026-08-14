@@ -156,3 +156,9 @@ npm run package # 打包成 dist/bili-digest-vX.Y.Z.zip
 
 - [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest)：产品形态的灵感来源；
 - [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)：B站接口的社区文档（该仓库已于 2026 年 1 月停止维护）。
+
+## 友链
+
+- [LINUX DO](https://linux.do)：开放的 Linux 与开发者社区，本项目在此发布与交流。
+
+欢迎交换友链，感谢每一位愿意把项目分享出去的朋友。
