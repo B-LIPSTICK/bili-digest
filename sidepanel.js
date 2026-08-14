@@ -29,6 +29,7 @@ const state = {
   segments: [],
   tracks: [],
   track: null,
+  pages: [],
   mode: "original",
   hideOriginal: false,
   translations: [],
@@ -68,8 +69,10 @@ const hideOriginalBtn = $("hideOriginalBtn");
 const translateBtn = $("translateBtn");
 const copyTranscriptBtn = $("copyTranscriptBtn");
 const exportBtn = $("exportBtn");
+const exportWithOverviewBtn = $("exportWithOverviewBtn");
 const refreshBtn = $("refreshBtn");
 const trackSelect = $("trackSelect");
+const partSelect = $("partSelect");
 const generateOverviewBtn = $("generateOverviewBtn");
 const regenerateOverviewBtn = $("regenerateOverviewBtn");
 const exportOverviewBtn = $("exportOverviewBtn");
@@ -296,6 +299,7 @@ async function detectVideo() {
       state.segments = [];
       state.tracks = [];
       state.track = null;
+      state.pages = [];
       state.translations = [];
       state.overview = null;
       state.notes = [];
@@ -303,6 +307,7 @@ async function detectVideo() {
       state.chatLoaded = false;
       updateHeader();
       ensureAuthorMid();
+      loadParts();
       await loadTranscript();
     } else {
       state.video = context;
@@ -410,6 +415,38 @@ async function loadTranscript({ lan } = {}) {
       { glyphHtml: true },
     );
   }
+}
+
+async function loadParts() {
+  const bvid = state.video?.bvid;
+  if (!bvid) return;
+  try {
+    const info = await send("getVideoInfo", { bvid });
+    const pages = Array.isArray(info.info?.pages) ? info.info.pages : [];
+    if (state.video?.bvid !== bvid) return;
+    state.pages = pages;
+    renderPartSelect();
+  } catch {
+    state.pages = [];
+    renderPartSelect();
+  }
+}
+
+function renderPartSelect() {
+  partSelect.replaceChildren();
+  if (state.pages.length <= 1) {
+    partSelect.classList.add("hidden");
+    return;
+  }
+  for (const part of state.pages) {
+    const option = document.createElement("option");
+    option.value = String(part.page);
+    option.textContent = `P${part.page} ${part.part || ""}`;
+    partSelect.appendChild(option);
+  }
+  const current = Number(state.video?.page) || 1;
+  partSelect.value = String(current);
+  partSelect.classList.remove("hidden");
 }
 
 function renderTrackSelect() {
@@ -585,9 +622,13 @@ async function seekTo(seconds) {
   }
 }
 
-async function exportMarkdown() {
+async function exportMarkdown({ includeOverview = false } = {}) {
   if (!state.video?.bvid) {
     showToast("先打开一个 B站视频", "error");
+    return;
+  }
+  if (includeOverview && !state.overview) {
+    showToast("还没有 AI 概览，请先到「概览」页点生成", "error");
     return;
   }
   try {
@@ -611,7 +652,8 @@ async function exportMarkdown() {
     const markdown = buildMarkdown({
       video: state.video,
       description,
-      overview: state.overview,
+      overview: includeOverview ? state.overview : null,
+      includeOverview,
       segments: state.segments,
       translations: state.translations,
       notes,
@@ -623,12 +665,12 @@ async function exportMarkdown() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${rawName}.md`;
+    link.download = `${rawName}${includeOverview ? "-含概览" : ""}.md`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast("已导出 Markdown");
+    showToast(includeOverview ? "已导出含 AI 概览的资料" : "已导出资料");
   } catch (error) {
     showToast(`导出失败：${error.message}`, "error");
   }
@@ -1689,6 +1731,12 @@ trackSelect.addEventListener("change", () => {
   if (!lan || lan === state.track?.lan) return;
   loadTranscript({ lan });
 });
+partSelect.addEventListener("change", () => {
+  const page = Number(partSelect.value) || 1;
+  sendToTab("switchPart", { page }).catch(() =>
+    showToast("切换分 P 失败，请刷新视频页后重试", "error"),
+  );
+});
 
 translateBtn.addEventListener("click", startTranslation);
 hideOriginalBtn.addEventListener("click", () => {
@@ -1697,7 +1745,10 @@ hideOriginalBtn.addEventListener("click", () => {
   updateHideOriginalButton();
   renderSegments();
 });
-exportBtn.addEventListener("click", exportMarkdown);
+exportBtn.addEventListener("click", () => exportMarkdown());
+exportWithOverviewBtn.addEventListener("click", () =>
+  exportMarkdown({ includeOverview: true }),
+);
 copyTranscriptBtn.addEventListener("click", copyTranscript);
 generateOverviewBtn.addEventListener("click", () => loadOverview({ force: false }));
 regenerateOverviewBtn.addEventListener("click", () => loadOverview({ force: true }));

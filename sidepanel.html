@@ -33,6 +33,7 @@
       <section id="tab-transcript" class="panel active">
         <div class="panel-toolbar">
           <div class="toolbar-left">
+            <select id="partSelect" class="part-select hidden" aria-label="选择分 P"></select>
             <div class="mode-switch" role="tablist" aria-label="字幕视图">
               <button class="mode active" data-mode="original" role="tab">原文</button>
               <button class="mode" data-mode="bilingual" role="tab">双语</button>
@@ -43,7 +44,8 @@
           <div class="toolbar-actions">
             <button id="translateBtn" class="ghost-btn" title="翻译整个视频（结果会缓存）">翻译</button>
             <button id="copyTranscriptBtn" class="icon-btn" title="复制当前视图字幕" aria-label="复制字幕">⧉</button>
-            <button id="exportBtn" class="icon-btn" title="导出 Markdown" aria-label="导出 Markdown">↓</button>
+            <button id="exportBtn" class="icon-btn" title="导出资料（字幕、笔记，不含 AI 概览）" aria-label="导出资料">↓</button>
+            <button id="exportWithOverviewBtn" class="icon-btn" title="导出含 AI 概览的资料（需先在概览页生成）" aria-label="导出含 AI 概览">⇩</button>
             <button id="refreshBtn" class="icon-btn" title="重新加载字幕" aria-label="重新加载字幕">↻</button>
           </div>
         </div>

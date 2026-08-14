@@ -102,12 +102,32 @@ if (tracks.length === 0) {
   process.exit(0);
 }
 
-// 4. 下载字幕 JSON
-const track = pickChineseTrack(tracks);
-const url = normalizeSubtitleUrl(track.subtitle_url);
-const subtitleJson = await getJson(url);
-const segments = parseSubtitleJson(subtitleJson);
-console.log(`[4] 选中轨道：${track.lan}（${track.lan_doc}），解析出 ${segments.length} 条字幕`);
-if (segments[0]) {
-  console.log(`    示例：[${segments[0].from}s] ${segments[0].content.slice(0, 40)}`);
+// 4. 逐个轨道下载字幕 JSON，排查「切换语言没反应」
+console.log("[4] 逐轨验证下载：");
+for (const track of tracks) {
+  const url = normalizeSubtitleUrl(track.subtitle_url);
+  if (!url) {
+    console.log(`    ${track.lan}（${track.lan_doc}）：没有 subtitle_url，跳过`);
+    continue;
+  }
+  try {
+    const subtitleJson = await getJson(url);
+    const segments = parseSubtitleJson(subtitleJson);
+    const sample = segments[0]
+      ? `，示例：[${segments[0].from}s] ${segments[0].content.slice(0, 30)}`
+      : "";
+    console.log(
+      `    ${track.lan}（${track.lan_doc}）：${segments.length} 条字幕${sample}`,
+    );
+  } catch (error) {
+    console.log(
+      `    ${track.lan}（${track.lan_doc}）：下载失败（${error.message}）`,
+    );
+  }
 }
+
+// 5. 扩展默认会选的轨道
+const defaultTrack = pickChineseTrack(tracks);
+console.log(
+  `[5] 扩展默认选择：${defaultTrack?.lan}（${defaultTrack?.lan_doc}）`,
+);

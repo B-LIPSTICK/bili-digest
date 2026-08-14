@@ -302,7 +302,8 @@ body::after {
   gap: 8px;
 }
 
-.track-select {
+.track-select,
+.part-select {
   width: auto;
   max-width: 150px;
   padding: 4px 10px;

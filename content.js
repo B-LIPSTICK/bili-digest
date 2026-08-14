@@ -34,18 +34,22 @@ function getBvid() {
 }
 
 function getCid() {
-  const playinfo = window.__playinfo__;
   const state = window.__INITIAL_STATE__ || {};
   const videoData = state.videoData || {};
   const pageParam = Number(new URLSearchParams(location.search).get("p")) || 0;
 
-  let cid = playinfo?.data?.cid ?? videoData?.cid ?? state.cid ?? 0;
+  // 优先按 URL 的 p 参数取对应分 P 的 cid。
+  // 切 P 是 SPA 更新，SSR 里的 videoData.cid 和 state.cid 仍是 P1 的值，
+  // 直接读它们会导致切 P 后字幕永远停在第一集。
+  if (pageParam > 0 && Array.isArray(videoData.pages)) {
+    const page = videoData.pages[pageParam - 1];
+    if (page?.cid) return Number(page.cid) || 0;
+  }
+
+  let cid =
+    window.__playinfo__?.data?.cid ?? videoData?.cid ?? state.cid ?? 0;
   if (!cid && Array.isArray(videoData.pages)) {
-    const page =
-      pageParam > 0
-        ? videoData.pages[pageParam - 1] || videoData.pages[0]
-        : videoData.pages[0];
-    cid = page?.cid ?? 0;
+    cid = videoData.pages[0]?.cid ?? 0;
   }
   return Number(cid) || 0;
 }
@@ -91,6 +95,7 @@ function getVideoContext() {
     title,
     author,
     authorMid,
+    page: Number(new URLSearchParams(location.search).get("p")) || 1,
     currentTime: video ? Math.floor(video.currentTime) : 0,
     paused: video ? video.paused : true,
   };
@@ -120,6 +125,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
     case "showToast": {
       showToast(message.text, message.kind);
+      sendResponse({ success: true });
+      return false;
+    }
+    case "switchPart": {
+      const url = new URL(location.href);
+      const page = Math.max(1, Number(message.page) || 1);
+      if (page > 1) {
+        url.searchParams.set("p", String(page));
+      } else {
+        url.searchParams.delete("p");
+      }
+      location.href = url.toString();
       sendResponse({ success: true });
       return false;
     }

@@ -40,6 +40,17 @@ test("buildMarkdown 输出概览的章节、要点与金句", () => {
   assert.match(markdown, /\[01:05\]\([^)]+\?t=65\) 原话一句/);
 });
 
+test("buildMarkdown 可导出不含 AI 概览的资料版", () => {
+  const markdown = buildMarkdown({
+    video: { bvid: "BV1xx411c7mD", title: "测试视频" },
+    overview: { summary: "一句话概要" },
+    includeOverview: false,
+    exportedAt: FIXED_DATE,
+  });
+  assert.doesNotMatch(markdown, /## AI 概览/);
+  assert.doesNotMatch(markdown, /一句话概要/);
+});
+
 test("buildMarkdown 译文数量对齐时输出双语字幕", () => {
   const markdown = buildMarkdown({
     video: { bvid: "BV1xx411c7mD", title: "测试视频" },
