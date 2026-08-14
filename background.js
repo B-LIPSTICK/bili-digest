@@ -24,6 +24,7 @@ import {
   normalizeProviderConfig,
   migrateLegacySettings,
   requestAiCompletion,
+  requestModelList,
   parseLooseJson,
 } from "./lib/ai.js";
 import { buildNoteContext, segmentsToText } from "./lib/note-context.js";
@@ -612,6 +613,22 @@ async function handleTestApiKey({ apiKey, baseUrl, model }) {
   return { text: content.trim() };
 }
 
+async function handleListModels({ apiKey, baseUrl }) {
+  const config = normalizeProviderConfig({
+    aiApiKey: apiKey,
+    aiBaseUrl: baseUrl,
+    aiModel: "",
+  });
+  if (!config.apiKey) {
+    throw new Error("请先填写 API Key");
+  }
+  if (!config.baseUrl) {
+    throw new Error("请先填写接口地址");
+  }
+  const models = await requestModelList(config);
+  return { models };
+}
+
 // ============================================================
 // 消息路由
 // ============================================================
@@ -647,6 +664,11 @@ async function route(message, sender) {
         apiKey: message.apiKey,
         baseUrl: message.baseUrl,
         model: message.model,
+      });
+    case "listModels":
+      return await handleListModels({
+        apiKey: message.apiKey,
+        baseUrl: message.baseUrl,
       });
     case "getVideoInfo":
       return { info: await handleGetVideoInfo(message.bvid) };

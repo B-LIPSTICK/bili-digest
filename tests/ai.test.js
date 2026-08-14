@@ -5,6 +5,8 @@ import {
   migrateLegacySettings,
   normalizeProviderConfig,
   completionUrl,
+  modelsUrl,
+  parseModelList,
   buildCompletionBody,
   describeHttpError,
   parseLooseJson,
@@ -66,6 +68,26 @@ test("completionUrl 去掉末尾斜杠再拼接", () => {
     completionUrl("https://api.openai.com/v1/"),
     "https://api.openai.com/v1/chat/completions",
   );
+});
+
+test("modelsUrl 去掉末尾斜杠再拼接", () => {
+  assert.equal(modelsUrl("https://api.openai.com/v1/"), "https://api.openai.com/v1/models");
+  assert.equal(modelsUrl("https://api.deepseek.com"), "https://api.deepseek.com/models");
+});
+
+test("parseModelList 兼容 data 与 models 结构并去重排序", () => {
+  assert.deepEqual(
+    parseModelList({
+      data: [{ id: "gpt-5" }, { id: "gpt-4o" }, { id: "gpt-4o" }],
+    }),
+    ["gpt-4o", "gpt-5"],
+  );
+  assert.deepEqual(
+    parseModelList({ models: [{ name: "llama3:latest" }, { id: "qwen-plus" }] }),
+    ["llama3:latest", "qwen-plus"],
+  );
+  assert.deepEqual(parseModelList(null), []);
+  assert.deepEqual(parseModelList({ data: [{ other: "x" }] }), []);
 });
 
 test("buildCompletionBody 仅 DeepSeek 带 thinking", () => {

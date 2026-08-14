@@ -26,11 +26,23 @@
         </div>
         <label class="field-label" for="baseUrlInput">接口地址（Base URL）</label>
         <input id="baseUrlInput" type="text" autocomplete="off" spellcheck="false" placeholder="https://…" />
-        <label class="field-label" for="modelInput">模型</label>
-        <input id="modelInput" type="text" autocomplete="off" spellcheck="false" placeholder="模型名称" />
+        <label class="field-label" for="modelSelect">模型</label>
+        <select id="modelSelect">
+          <option value="__custom__">自定义…</option>
+        </select>
+        <input
+          id="modelInput"
+          type="text"
+          class="hidden"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="手动输入模型名称"
+        />
         <div class="button-row">
+          <button id="listModelsBtn" class="ghost-btn" type="button">拉取模型</button>
           <button id="testKeyBtn" class="ghost-btn" type="button">测试连接</button>
         </div>
+        <div id="modelListHint" class="hint hidden"></div>
         <div id="keyTestResult" class="hint"></div>
         <p class="hint dim">
           任意 OpenAI 兼容接口都可以：OpenAI <code>https://api.openai.com/v1</code>、Anthropic <code>https://api.anthropic.com/v1</code>（官方兼容端点，标注为测试用途）、DeepSeek <code>https://api.deepseek.com</code>，或本地 Ollama <code>http://localhost:11434/v1</code>。三项填完点「测试连接」。密钥只保存在本机 Chrome 存储中。

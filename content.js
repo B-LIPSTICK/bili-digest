@@ -346,6 +346,41 @@ function updateNoteButton() {
   ensureNoteButtonHost().style.display = "block";
 }
 
+/**
+ * 全屏时 B站播放器独占一个全屏层，挂在 body 下的按钮不会显示。
+ * 这里监听全屏状态变化，把标记按钮（和轻提示）移进全屏容器右上角，
+ * 退出全屏后再放回 body。
+ */
+function getFullscreenTarget() {
+  const fullscreen =
+    document.fullscreenElement || document.webkitFullscreenElement;
+  if (!fullscreen) return null;
+  return fullscreen.nodeName === "VIDEO"
+    ? fullscreen.parentElement
+    : fullscreen;
+}
+
+function positionNoteButton() {
+  const fullscreenTarget = getFullscreenTarget();
+  if (fullscreenTarget) {
+    ensureNoteButtonHost();
+    if (noteButtonHost.parentElement !== fullscreenTarget) {
+      fullscreenTarget.appendChild(noteButtonHost);
+    }
+    noteButtonHost.style.cssText =
+      "position: absolute; top: 20px; right: 20px; z-index: 2147483647; display: block;";
+    return;
+  }
+  if (noteButtonHost) {
+    if (noteButtonHost.parentElement !== document.body) {
+      (document.body || document.documentElement).appendChild(noteButtonHost);
+    }
+    noteButtonHost.style.cssText =
+      "position: fixed; top: 80px; right: 16px; z-index: 9998; display: none;";
+    updateNoteButton();
+  }
+}
+
 async function captureCurrentNote() {
   if (noteSaving) return;
   const context = getVideoContext();
@@ -445,7 +480,8 @@ function showToast(text, kind = "info") {
     line-height: 1.5;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   `;
-  document.body.appendChild(toast);
+  const fullscreenTarget = getFullscreenTarget();
+  (fullscreenTarget || document.body).appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
 
@@ -460,6 +496,8 @@ function init() {
   }
   window.addEventListener("scroll", () => scheduleUpdate(100), { passive: true });
   window.addEventListener("resize", () => scheduleUpdate(100), { passive: true });
+  document.addEventListener("fullscreenchange", positionNoteButton);
+  document.addEventListener("webkitfullscreenchange", positionNoteButton);
   watchNavigation();
   updateButton();
   updateNoteButton();

@@ -83,7 +83,10 @@ const toggleKeyBtn = $("toggleKeyBtn");
 const testKeyBtn = $("testKeyBtn");
 const keyTestResultEl = $("keyTestResult");
 const baseUrlInput = $("baseUrlInput");
+const modelSelect = $("modelSelect");
 const modelInput = $("modelInput");
+const listModelsBtn = $("listModelsBtn");
+const modelListHint = $("modelListHint");
 const targetLanguageSelect = $("targetLanguageSelect");
 const customLanguageInput = $("customLanguageInput");
 const saveSettingsBtn = $("saveSettingsBtn");
@@ -1427,7 +1430,13 @@ async function loadSettings() {
     state.settings = result.settings;
     apiKeyInput.value = state.settings.aiApiKey || "";
     baseUrlInput.value = state.settings.aiBaseUrl || "";
-    modelInput.value = state.settings.aiModel || "";
+    const savedModel = String(state.settings.aiModel || "").trim();
+    if (savedModel) {
+      setModelSelectOptions([savedModel], savedModel);
+    } else {
+      setModelSelectOptions([], "__custom__");
+    }
+    modelInput.value = "";
     targetLanguageSelect.value = state.settings.targetLanguage || "English";
     customLanguageInput.value = state.settings.customLanguage || "";
     updateCustomVisibility();
@@ -1444,11 +1453,37 @@ function updateCustomVisibility() {
   );
 }
 
+function updateModelCustomVisibility() {
+  modelInput.classList.toggle("hidden", modelSelect.value !== "__custom__");
+}
+
+function setModelSelectOptions(names, selected) {
+  modelSelect.replaceChildren();
+  for (const name of names) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    modelSelect.appendChild(option);
+  }
+  const custom = document.createElement("option");
+  custom.value = "__custom__";
+  custom.textContent = "自定义…";
+  modelSelect.appendChild(custom);
+  modelSelect.value = selected || "__custom__";
+  updateModelCustomVisibility();
+}
+
+function getCurrentModelValue() {
+  return modelSelect.value === "__custom__"
+    ? modelInput.value.trim()
+    : modelSelect.value;
+}
+
 async function saveSettings() {
   const settings = {
     aiApiKey: apiKeyInput.value.trim(),
     aiBaseUrl: baseUrlInput.value.trim(),
-    aiModel: modelInput.value.trim(),
+    aiModel: getCurrentModelValue(),
     targetLanguage: targetLanguageSelect.value,
     customLanguage: customLanguageInput.value.trim(),
   };
@@ -1469,7 +1504,7 @@ async function testApiKey() {
     const result = await send("testApiKey", {
       apiKey: apiKeyInput.value.trim(),
       baseUrl: baseUrlInput.value.trim(),
-      model: modelInput.value.trim(),
+      model: getCurrentModelValue(),
     });
     keyTestResultEl.className = "hint ok";
     keyTestResultEl.textContent = `连接成功：${result.text}`;
@@ -1479,6 +1514,53 @@ async function testApiKey() {
   } finally {
     testKeyBtn.disabled = false;
   }
+}
+
+async function fetchModelList() {
+  const apiKey = apiKeyInput.value.trim();
+  const baseUrl = baseUrlInput.value.trim();
+  if (!apiKey || !baseUrl) {
+    modelListHint.className = "hint error";
+    modelListHint.textContent = !apiKey
+      ? "请先填写 API Key"
+      : "请先填写接口地址";
+    modelListHint.classList.remove("hidden");
+    return;
+  }
+
+  listModelsBtn.disabled = true;
+  listModelsBtn.textContent = "拉取中…";
+  modelListHint.className = "hint";
+  modelListHint.textContent = "正在拉取模型列表…";
+  modelListHint.classList.remove("hidden");
+  try {
+    const result = await send("listModels", { apiKey, baseUrl });
+    fillModelList(result.models);
+    modelListHint.className = "hint ok";
+    modelListHint.textContent = `已填入「${getCurrentModelValue()}」，可在下拉切换或选「自定义…」手动填写，记得保存`;
+  } catch (error) {
+    modelListHint.className = "hint error";
+    modelListHint.textContent = error.message;
+  } finally {
+    listModelsBtn.disabled = false;
+    listModelsBtn.textContent = "拉取模型";
+  }
+}
+
+function fillModelList(models) {
+  if (!Array.isArray(models) || models.length === 0) return;
+  const previous = modelSelect.value;
+  const manual = modelInput.value.trim();
+  let selected;
+  if (models.includes(previous)) {
+    selected = previous;
+  } else if (previous === "__custom__" && manual) {
+    selected = "__custom__";
+  } else {
+    selected = models[0];
+  }
+  setModelSelectOptions(models, selected);
+  if (selected !== "__custom__") modelInput.value = "";
 }
 
 // ============================================================
@@ -1553,6 +1635,17 @@ chatInput.addEventListener("keydown", (event) => {
 });
 saveSettingsBtn.addEventListener("click", saveSettings);
 testKeyBtn.addEventListener("click", testApiKey);
+listModelsBtn.addEventListener("click", fetchModelList);
+modelSelect.addEventListener("change", () => {
+  if (modelSelect.value !== "__custom__") modelInput.value = "";
+  updateModelCustomVisibility();
+});
+for (const input of [apiKeyInput, baseUrlInput]) {
+  input.addEventListener("input", () => {
+    setModelSelectOptions([], "__custom__");
+    modelListHint.classList.add("hidden");
+  });
+}
 targetLanguageSelect.addEventListener("change", updateCustomVisibility);
 document.querySelectorAll(".notes-scope .mode").forEach((button) => {
   button.addEventListener("click", () => switchNotesScope(button.dataset.scope));
