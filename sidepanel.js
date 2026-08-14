@@ -397,7 +397,8 @@ async function loadTranscript({ lan } = {}) {
 
     renderTrackSelect();
     const trackLabel = state.track?.lan_doc || state.track?.lan || "字幕";
-    transcriptStatusEl.textContent = `已加载 ${state.segments.length} 条字幕 · ${trackLabel}`;
+    const partLabel = Number(state.video?.page) > 1 ? `P${state.video.page} · ` : "";
+    transcriptStatusEl.textContent = `${partLabel}已加载 ${state.segments.length} 条字幕 · ${trackLabel}`;
     send("setActiveTrack", {
       bvid,
       cid,
