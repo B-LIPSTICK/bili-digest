@@ -168,8 +168,12 @@ async function signedGet(path, params) {
 // 视频信息与字幕
 // ============================================================
 
-function transcriptKey(bvid, cid) {
-  return `transcript:${bvid}:${cid}`;
+function transcriptKey(bvid, cid, lan = "") {
+  return `transcript:${bvid}:${cid}:${String(lan || "")}`;
+}
+
+function activeTrackKey(bvid, cid) {
+  return `activeTrack:${bvid}:${cid}`;
 }
 
 async function handleGetVideoInfo(bvid) {
@@ -195,7 +199,7 @@ async function handleGetVideoInfo(bvid) {
   };
 }
 
-async function fetchTranscriptFromServer(bvid, cid, aid = "") {
+async function fetchSubtitleTracks(bvid, cid, aid = "") {
   if (!bvid) throw new Error("未检测到视频 BV 号");
   if (!aid || !cid) {
     const info = await handleGetVideoInfo(bvid);
@@ -234,14 +238,20 @@ async function fetchTranscriptFromServer(bvid, cid, aid = "") {
     }
   }
 
-  const tracks = playerData?.subtitle?.subtitles || [];
+  return { tracks: playerData?.subtitle?.subtitles || [] };
+}
+
+async function fetchTranscriptFromServer(bvid, cid, aid = "", preferredLan = "") {
+  const { tracks } = await fetchSubtitleTracks(bvid, cid, aid);
   if (tracks.length === 0) {
     return { bvid, cid, tracks: [], track: null, segments: [] };
   }
 
-  const track = pickChineseTrack(tracks);
+  const track = preferredLan
+    ? tracks.find((item) => String(item?.lan) === String(preferredLan))
+    : pickChineseTrack(tracks);
   if (!track?.subtitle_url) {
-    return { bvid, cid, tracks, track: null, segments: [] };
+    return { bvid, cid, tracks, track: track || null, segments: [] };
   }
 
   const subtitleUrl = normalizeSubtitleUrl(track.subtitle_url);
@@ -250,13 +260,22 @@ async function fetchTranscriptFromServer(bvid, cid, aid = "") {
   return { bvid, cid, tracks, track, segments };
 }
 
-async function handleFetchTranscript({ bvid, cid, aid }) {
-  const key = transcriptKey(bvid, cid);
+async function handleFetchTranscript({ bvid, cid, aid, lan }) {
+  let trackLan = String(lan || "");
+  if (!trackLan) {
+    const { tracks } = await fetchSubtitleTracks(bvid, cid, aid);
+    trackLan = String(pickChineseTrack(tracks)?.lan || "");
+    if (!trackLan) {
+      return { bvid, cid, tracks, track: null, segments: [] };
+    }
+  }
+
+  const key = transcriptKey(bvid, cid, trackLan);
   const cached = await store.get(key, null);
   if (cached && Date.now() - cached.fetchedAt < TRANSCRIPT_CACHE_TTL_MS) {
     return cached;
   }
-  const data = await fetchTranscriptFromServer(bvid, cid, aid);
+  const data = await fetchTranscriptFromServer(bvid, cid, aid, trackLan);
   const record = { ...data, fetchedAt: Date.now() };
   await store.set(key, record);
   return record;
@@ -288,8 +307,8 @@ async function renderPrompt(fileName, variables = {}) {
 // AI 功能
 // ============================================================
 
-function translationKey(bvid, cid, lang) {
-  return `translation:${bvid}:${cid}:${lang}`;
+function translationKey(bvid, cid, lan, lang) {
+  return `translation:${bvid}:${cid}:${String(lan || "")}:${lang}`;
 }
 
 function broadcastTranslationProgress(payload) {
@@ -300,12 +319,12 @@ function broadcastTranslationProgress(payload) {
     });
 }
 
-async function handleTranslate({ bvid, cid, segments, targetLanguage }) {
+async function handleTranslate({ bvid, cid, lan, segments, targetLanguage }) {
   if (!Array.isArray(segments) || segments.length === 0) {
     return { texts: [], cached: true };
   }
 
-  const key = translationKey(bvid, cid, targetLanguage);
+  const key = translationKey(bvid, cid, lan, targetLanguage);
   const cached = await store.get(key, null);
   if (cached && cached.texts?.length === segments.length) {
     return { texts: cached.texts, cached: true };
@@ -371,16 +390,16 @@ async function handleTranslate({ bvid, cid, segments, targetLanguage }) {
   return { texts, cached: false };
 }
 
-function digestKey(bvid, cid) {
-  return `digest:${bvid}:${cid}`;
+function digestKey(bvid, cid, lan = "") {
+  return `digest:${bvid}:${cid}:${String(lan || "")}`;
 }
 
-async function handleGenerateOverview({ bvid, cid, segments, force = false }) {
+async function handleGenerateOverview({ bvid, cid, lan, segments, force = false }) {
   if (!Array.isArray(segments) || segments.length === 0) {
     throw new Error("没有字幕，无法生成概览");
   }
 
-  const key = digestKey(bvid, cid);
+  const key = digestKey(bvid, cid, lan);
   if (!force) {
     const cached = await store.get(key, null);
     if (cached) return { ...cached, cached: true };
@@ -529,9 +548,12 @@ async function handleCaptureNote({ bvid, cid, aid, seconds, videoTitle, author }
   if (!bvid) throw new Error("未检测到视频");
   const time = Math.max(0, Number(seconds) || 0);
 
-  let record = await store.get(transcriptKey(bvid, cid), null);
+  const activeLan = await store.get(activeTrackKey(bvid, cid), "");
+  let record = activeLan
+    ? await store.get(transcriptKey(bvid, cid, activeLan), null)
+    : null;
   if (!record?.segments?.length) {
-    record = await fetchTranscriptFromServer(bvid, cid, aid);
+    record = await fetchTranscriptFromServer(bvid, cid, aid, activeLan);
   }
   const segments = record?.segments || [];
   if (!segments.length) {
@@ -677,11 +699,13 @@ async function route(message, sender) {
         bvid: message.bvid,
         cid: message.cid,
         aid: message.aid,
+        lan: message.lan,
       });
     case "translate":
       return await handleTranslate({
         bvid: message.bvid,
         cid: message.cid,
+        lan: message.lan,
         segments: message.segments,
         targetLanguage: message.targetLanguage,
       });
@@ -689,9 +713,16 @@ async function route(message, sender) {
       return await handleGenerateOverview({
         bvid: message.bvid,
         cid: message.cid,
+        lan: message.lan,
         segments: message.segments,
         force: Boolean(message.force),
       });
+    case "setActiveTrack":
+      await store.set(
+        activeTrackKey(message.bvid, message.cid),
+        String(message.lan || ""),
+      );
+      return { ok: true };
     case "explainSelection":
       return await handleExplain({ text: message.text, context: message.context });
     case "polishNote":

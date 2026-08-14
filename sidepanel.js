@@ -27,6 +27,8 @@ const EMPTY_GLYPHS = {
 const state = {
   video: null,
   segments: [],
+  tracks: [],
+  track: null,
   mode: "original",
   hideOriginal: false,
   translations: [],
@@ -67,6 +69,7 @@ const translateBtn = $("translateBtn");
 const copyTranscriptBtn = $("copyTranscriptBtn");
 const exportBtn = $("exportBtn");
 const refreshBtn = $("refreshBtn");
+const trackSelect = $("trackSelect");
 const generateOverviewBtn = $("generateOverviewBtn");
 const regenerateOverviewBtn = $("regenerateOverviewBtn");
 const exportOverviewBtn = $("exportOverviewBtn");
@@ -291,6 +294,8 @@ async function detectVideo() {
     if (changed) {
       state.video = context;
       state.segments = [];
+      state.tracks = [];
+      state.track = null;
       state.translations = [];
       state.overview = null;
       state.notes = [];
@@ -332,7 +337,7 @@ async function ensureAuthorMid() {
 // 字幕
 // ============================================================
 
-async function loadTranscript() {
+async function loadTranscript({ lan } = {}) {
   const { bvid, cid } = state.video;
   if (!bvid) {
     renderEmpty(
@@ -353,9 +358,19 @@ async function loadTranscript() {
       // cid 允许为 0：页面数据未就绪时由后台通过签名接口解析
       cid: cid || 0,
       aid: state.video.aid,
+      lan,
     });
+    const trackChanged = state.track?.lan !== result.track?.lan;
     state.segments = result.segments || [];
+    state.tracks = result.tracks || [];
+    state.track = result.track || null;
     state.translations = [];
+
+    if (trackChanged) {
+      state.overview = null;
+      overviewStatusEl.textContent = "";
+      if (state.currentTab === "overview") loadCachedOverview();
+    }
 
     if (state.segments.length === 0) {
       renderEmpty(
@@ -373,7 +388,12 @@ async function loadTranscript() {
       return;
     }
 
-    transcriptStatusEl.textContent = `已加载 ${state.segments.length} 条字幕`;
+    renderTrackSelect();
+    const trackLabel = state.track?.lan_doc || state.track?.lan || "字幕";
+    transcriptStatusEl.textContent = `已加载 ${state.segments.length} 条字幕 · ${trackLabel}`;
+    send("setActiveTrack", { bvid, cid, lan: state.track?.lan || "" }).catch(
+      () => {},
+    );
     renderSegments();
     updateTranslateButton();
   } catch (error) {
@@ -390,6 +410,23 @@ async function loadTranscript() {
       { glyphHtml: true },
     );
   }
+}
+
+function renderTrackSelect() {
+  trackSelect.replaceChildren();
+  const tracks = state.tracks || [];
+  if (tracks.length <= 1) {
+    trackSelect.classList.add("hidden");
+    return;
+  }
+  for (const track of tracks) {
+    const option = document.createElement("option");
+    option.value = String(track.lan || "");
+    option.textContent = String(track.lan_doc || track.lan || "");
+    trackSelect.appendChild(option);
+  }
+  if (state.track?.lan) trackSelect.value = state.track.lan;
+  trackSelect.classList.remove("hidden");
 }
 
 function renderSegments() {
@@ -475,6 +512,7 @@ async function startTranslation() {
     const result = await send("translate", {
       bvid: state.video.bvid,
       cid: state.video.cid,
+      lan: state.track?.lan || "",
       segments: state.segments,
       targetLanguage: target,
     });
@@ -652,6 +690,7 @@ async function loadOverview({ force = false } = {}) {
     const result = await send("generateOverview", {
       bvid: state.video.bvid,
       cid: state.video.cid,
+      lan: state.track?.lan || "",
       segments: state.segments,
       force,
     });
@@ -682,7 +721,7 @@ async function loadCachedOverview() {
     return;
   }
   try {
-    const key = `digest:${state.video.bvid}:${state.video.cid}`;
+    const key = `digest:${state.video.bvid}:${state.video.cid}:${state.track?.lan || ""}`;
     const result = await chrome.storage.local.get(key);
     const cached = result[key];
     if (cached?.summary || cached?.chapters?.length) {
@@ -1644,6 +1683,11 @@ document.querySelectorAll(".mode").forEach((button) => {
 refreshBtn.addEventListener("click", () => {
   refreshBtn.classList.add("spinning");
   loadTranscript().finally(() => refreshBtn.classList.remove("spinning"));
+});
+trackSelect.addEventListener("change", () => {
+  const lan = trackSelect.value;
+  if (!lan || lan === state.track?.lan) return;
+  loadTranscript({ lan });
 });
 
 translateBtn.addEventListener("click", startTranslation);

@@ -302,6 +302,14 @@ body::after {
   gap: 8px;
 }
 
+.track-select {
+  width: auto;
+  max-width: 150px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-full);
+}
+
 .toolbar-actions {
   display: flex;
   align-items: center;
