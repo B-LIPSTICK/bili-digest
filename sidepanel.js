@@ -363,6 +363,7 @@ async function loadTranscript({ lan } = {}) {
       // cid 允许为 0：页面数据未就绪时由后台通过签名接口解析
       cid: cid || 0,
       aid: state.video.aid,
+      page: state.video.page || 1,
       lan,
     });
     const trackChanged = state.track?.lan !== result.track?.lan;

@@ -418,6 +418,7 @@ async function captureCurrentNote() {
       bvid: context.bvid,
       cid: context.cid,
       aid: context.aid,
+      page: context.page || 1,
       seconds,
       videoTitle: context.title,
       author: context.author,

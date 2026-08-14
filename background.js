@@ -176,9 +176,11 @@ function activeTrackKey(bvid, cid) {
   return `activeTrack:${bvid}:${cid}`;
 }
 
-async function handleGetVideoInfo(bvid) {
+async function handleGetVideoInfo(bvid, page = 0) {
   if (!bvid) throw new Error("缺少视频 BV 号");
-  const view = await signedGet("/x/web-interface/wbi/view", { bvid });
+  const params = { bvid };
+  if (Number(page) > 1) params.p = String(Number(page));
+  const view = await signedGet("/x/web-interface/wbi/view", params);
   const data = view.data;
   return {
     bvid,
@@ -199,10 +201,10 @@ async function handleGetVideoInfo(bvid) {
   };
 }
 
-async function fetchSubtitleTracks(bvid, cid, aid = "") {
+async function fetchSubtitleTracks(bvid, cid, aid = "", page = 0) {
   if (!bvid) throw new Error("未检测到视频 BV 号");
   if (!aid || !cid) {
-    const info = await handleGetVideoInfo(bvid);
+    const info = await handleGetVideoInfo(bvid, page);
     aid = String(info.aid || "");
     cid = cid || info.cid;
   }
@@ -241,8 +243,14 @@ async function fetchSubtitleTracks(bvid, cid, aid = "") {
   return { tracks: playerData?.subtitle?.subtitles || [] };
 }
 
-async function fetchTranscriptFromServer(bvid, cid, aid = "", preferredLan = "") {
-  const { tracks } = await fetchSubtitleTracks(bvid, cid, aid);
+async function fetchTranscriptFromServer(
+  bvid,
+  cid,
+  aid = "",
+  preferredLan = "",
+  page = 0,
+) {
+  const { tracks } = await fetchSubtitleTracks(bvid, cid, aid, page);
   if (tracks.length === 0) {
     return { bvid, cid, tracks: [], track: null, segments: [] };
   }
@@ -260,10 +268,10 @@ async function fetchTranscriptFromServer(bvid, cid, aid = "", preferredLan = "")
   return { bvid, cid, tracks, track, segments };
 }
 
-async function handleFetchTranscript({ bvid, cid, aid, lan }) {
+async function handleFetchTranscript({ bvid, cid, aid, lan, page }) {
   let trackLan = String(lan || "");
   if (!trackLan) {
-    const { tracks } = await fetchSubtitleTracks(bvid, cid, aid);
+    const { tracks } = await fetchSubtitleTracks(bvid, cid, aid, page);
     trackLan = String(pickChineseTrack(tracks)?.lan || "");
     if (!trackLan) {
       return { bvid, cid, tracks, track: null, segments: [] };
@@ -275,7 +283,7 @@ async function handleFetchTranscript({ bvid, cid, aid, lan }) {
   if (cached && Date.now() - cached.fetchedAt < TRANSCRIPT_CACHE_TTL_MS) {
     return cached;
   }
-  const data = await fetchTranscriptFromServer(bvid, cid, aid, trackLan);
+  const data = await fetchTranscriptFromServer(bvid, cid, aid, trackLan, page);
   const record = { ...data, fetchedAt: Date.now() };
   await store.set(key, record);
   return record;
@@ -544,7 +552,15 @@ async function handleSaveNote({ videoId, timestamp, videoTitle, author, text }) 
   return { success: true, note };
 }
 
-async function handleCaptureNote({ bvid, cid, aid, seconds, videoTitle, author }) {
+async function handleCaptureNote({
+  bvid,
+  cid,
+  aid,
+  page,
+  seconds,
+  videoTitle,
+  author,
+}) {
   if (!bvid) throw new Error("未检测到视频");
   const time = Math.max(0, Number(seconds) || 0);
 
@@ -553,7 +569,7 @@ async function handleCaptureNote({ bvid, cid, aid, seconds, videoTitle, author }
     ? await store.get(transcriptKey(bvid, cid, activeLan), null)
     : null;
   if (!record?.segments?.length) {
-    record = await fetchTranscriptFromServer(bvid, cid, aid, activeLan);
+    record = await fetchTranscriptFromServer(bvid, cid, aid, activeLan, page);
   }
   const segments = record?.segments || [];
   if (!segments.length) {
@@ -700,6 +716,7 @@ async function route(message, sender) {
         cid: message.cid,
         aid: message.aid,
         lan: message.lan,
+        page: message.page,
       });
     case "translate":
       return await handleTranslate({
