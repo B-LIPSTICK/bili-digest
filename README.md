@@ -39,13 +39,6 @@ Bili Digest 是一个 Chrome 侧边栏扩展：在你看 B站视频的同时，�
 
 AI 功能（翻译、概览、逐句解释、笔记润色、视频问答）需要你自己的 API Key。设置页只提供一个「OpenAI 兼容」入口：填接口地址、模型名和 Key，任何兼容 Chat Completions 的服务都能用：
 
-| 服务 | 接口地址示例 | 模型示例 | 申请入口 |
-| --- | --- | --- | --- |
-| OpenAI | `https://api.openai.com/v1` | `gpt-5.6-terra` | [开放平台](https://platform.openai.com/) |
-| Anthropic | `https://api.anthropic.com/v1` | `claude-sonnet-4-5` | [控制台](https://console.anthropic.com/) |
-| DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash` | [开放平台](https://platform.deepseek.com/) |
-| 本地模型 | `http://localhost:11434/v1` | `llama3`（Ollama） | — |
-
 1. 到对应平台注册并创建 API Key；
 2. 在扩展侧边栏的「设置」页填入接口地址、模型和 Key（或右键扩展图标 → 选项）；
 3. 点「测试连接」确认可用。
