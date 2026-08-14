@@ -8,7 +8,7 @@
  * 4. 显示笔记保存成功等轻量提示。
  */
 
-const DEBUG = true;
+const DEBUG = false;
 
 const debugLog = (...args) => {
   if (DEBUG) console.log("[BiliDigest Content]", ...args);
