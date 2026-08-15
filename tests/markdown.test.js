@@ -34,6 +34,13 @@ test("renderMarkdown 兼容顿号和全角句点序号", () => {
   assert.match(html, /<li value="3">丙<\/li>/);
 });
 
+test("renderMarkdown 缩进子项不打断父列表编号", () => {
+  const html = renderMarkdown("1. 甲\n   - 子项一\n   - 子项二\n2. 乙");
+  assert.match(html, /<li value="1">甲<\/li>/);
+  assert.match(html, /<li>子项一<\/li>/);
+  assert.match(html, /<li value="2">乙<\/li>/);
+});
+
 test("renderMarkdown 渲染加粗、行内代码与链接", () => {
   const html = renderMarkdown(
     "这是**重点**和 `code`，参考 [链接](https://example.com/a)。",

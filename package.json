@@ -1,6 +1,6 @@
 {
   "name": "bili-digest",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": true,
   "type": "module",
   "description": "把 B站视频变成学习资料的 Chrome 扩展",

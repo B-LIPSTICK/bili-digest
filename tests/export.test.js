@@ -164,6 +164,11 @@ test("normalizeModelMarkdown 列表项后的正文不打断编号", () => {
   assert.equal(out, "1. **甲**\n\n正文说明\n\n2. **乙**\n\n正文说明2");
 });
 
+test("normalizeModelMarkdown 缩进子项不打断编号", () => {
+  const out = normalizeModelMarkdown("1. 甲\n   - 子项\n2. 乙");
+  assert.equal(out, "1. 甲\n   - 子项\n2. 乙");
+});
+
 test("buildChatMarkdown 对 AI 回答应用规范化", () => {
   const markdown = buildChatMarkdown({
     video: { bvid: "BV1xx411c7mD", title: "测试视频" },
