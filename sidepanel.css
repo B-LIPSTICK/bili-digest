@@ -959,11 +959,12 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 0;
+  padding: 0;
 }
 
 #tab-chat .panel-toolbar {
   flex: none;
+  padding: 14px 16px 0;
 }
 
 .chat-messages {
@@ -973,6 +974,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
   padding-bottom: 12px;
 }
 
@@ -1152,7 +1155,7 @@ html[data-theme="dark"] .chat-msg.user .chat-msg-text {
 .chat-composer {
   position: static;
   flex: none;
-  padding: 10px 0 14px;
+  padding: 10px 16px 14px;
   border-top: 1px solid var(--line);
   background-color: var(--surface);
 }
