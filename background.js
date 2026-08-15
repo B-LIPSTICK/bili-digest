@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS = {
   aiModel: "",
   targetLanguage: "English",
   customLanguage: "",
+  thinkingLevel: "off",
 };
 
 /**
@@ -66,6 +67,11 @@ function mergeSettings(base, incoming = {}) {
   merged.aiModel = String(merged.aiModel ?? "").trim();
   merged.targetLanguage = String(merged.targetLanguage || "English");
   merged.customLanguage = String(merged.customLanguage || "").trim();
+  merged.thinkingLevel = ["off", "low", "medium", "high", "default"].includes(
+    String(merged.thinkingLevel),
+  )
+    ? String(merged.thinkingLevel)
+    : "off";
   // 清理旧版多供应商字段，统一到单入口
   delete merged.aiProvider;
   delete merged.providers;

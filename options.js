@@ -13,6 +13,7 @@ const modelSelect = $("modelSelect");
 const modelInput = $("modelInput");
 const listModelsBtn = $("listModelsBtn");
 const modelListHint = $("modelListHint");
+const thinkingLevelSelect = $("thinkingLevelSelect");
 const targetLanguageSelect = $("targetLanguageSelect");
 const customLanguageInput = $("customLanguageInput");
 const saveSettingsBtn = $("saveSettingsBtn");
@@ -94,6 +95,7 @@ async function loadSettings() {
       setModelSelectOptions([], "__custom__");
     }
     modelInput.value = "";
+    thinkingLevelSelect.value = settings.thinkingLevel || "off";
     targetLanguageSelect.value = settings.targetLanguage || "English";
     customLanguageInput.value = settings.customLanguage || "";
     updateCustomVisibility();
@@ -110,6 +112,7 @@ async function saveSettings() {
         aiApiKey: apiKeyInput.value.trim(),
         aiBaseUrl: baseUrlInput.value.trim(),
         aiModel: getCurrentModelValue(),
+        thinkingLevel: thinkingLevelSelect.value,
         targetLanguage: targetLanguageSelect.value,
         customLanguage: customLanguageInput.value.trim(),
       },

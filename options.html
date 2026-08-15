@@ -38,6 +38,17 @@
           spellcheck="false"
           placeholder="手动输入模型名称"
         />
+        <label class="field-label" for="thinkingLevelSelect">思考等级</label>
+        <select id="thinkingLevelSelect">
+          <option value="off">关闭思考（快速，省 token）</option>
+          <option value="low">低</option>
+          <option value="medium">中</option>
+          <option value="high">高（更强，更慢更贵）</option>
+          <option value="default">跟随服务默认</option>
+        </select>
+        <p class="hint dim">
+          DeepSeek 支持思考开关与强度；其他 OpenAI 兼容端点传 reasoning_effort；Anthropic 兼容端点暂不附加此参数。
+        </p>
         <div class="button-row">
           <button id="listModelsBtn" class="ghost-btn" type="button">拉取模型</button>
           <button id="testKeyBtn" class="ghost-btn" type="button">测试连接</button>

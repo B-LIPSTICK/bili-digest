@@ -105,6 +105,46 @@ test("buildCompletionBody 仅 DeepSeek 带 thinking", () => {
   assert.equal(anthropic.thinking, undefined);
 });
 
+test("buildCompletionBody 按思考等级设置参数", () => {
+  const deepseekHigh = buildCompletionBody(
+    { kind: "deepseek", model: "deepseek-v4-flash", thinkingLevel: "high" },
+    MESSAGES,
+  );
+  assert.deepEqual(deepseekHigh.thinking, { type: "enabled" });
+  assert.equal(deepseekHigh.reasoning_effort, "high");
+
+  const openaiMedium = buildCompletionBody(
+    { kind: "openai", model: "gpt-5.6-terra", thinkingLevel: "medium" },
+    MESSAGES,
+  );
+  assert.equal(openaiMedium.thinking, undefined);
+  assert.equal(openaiMedium.reasoning_effort, "medium");
+
+  const anthropicHigh = buildCompletionBody(
+    { kind: "anthropic", model: "claude-sonnet-4-5", thinkingLevel: "high" },
+    MESSAGES,
+  );
+  assert.equal(anthropicHigh.thinking, undefined);
+  assert.equal(anthropicHigh.reasoning_effort, undefined);
+});
+
+test("normalizeProviderConfig 解析思考等级并兜底", () => {
+  assert.equal(
+    normalizeProviderConfig({
+      aiApiKey: "sk-x",
+      aiBaseUrl: "https://api.deepseek.com",
+      aiModel: "m",
+      thinkingLevel: "high",
+    }).thinkingLevel,
+    "high",
+  );
+  assert.equal(
+    normalizeProviderConfig({ aiBaseUrl: "https://api.openai.com/v1" })
+      .thinkingLevel,
+    "off",
+  );
+});
+
 test("buildCompletionBody json 模式：OpenAI 兼容加 response_format，Anthropic 不加", () => {
   const openai = buildCompletionBody(
     { kind: "openai", model: "gpt-5.6-terra" },
