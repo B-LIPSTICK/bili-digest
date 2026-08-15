@@ -150,9 +150,18 @@ test("normalizeModelMarkdown 重排懒编号并折叠多余空行", () => {
   );
 });
 
-test("normalizeModelMarkdown 各列表独立编号", () => {
-  const out = normalizeModelMarkdown("1. 甲\n1. 乙\n\n正文\n1. 丙\n1. 丁");
-  assert.equal(out, "1. 甲\n2. 乙\n\n正文\n1. 丙\n2. 丁");
+test("normalizeModelMarkdown 标题分隔的列表各自独立编号", () => {
+  const out = normalizeModelMarkdown(
+    "1. 甲\n1. 乙\n\n## 第二部分\n1. 丙\n1. 丁",
+  );
+  assert.equal(out, "1. 甲\n2. 乙\n\n## 第二部分\n1. 丙\n2. 丁");
+});
+
+test("normalizeModelMarkdown 列表项后的正文不打断编号", () => {
+  const out = normalizeModelMarkdown(
+    "1. **甲**\n\n正文说明\n\n1. **乙**\n\n正文说明2",
+  );
+  assert.equal(out, "1. **甲**\n\n正文说明\n\n2. **乙**\n\n正文说明2");
 });
 
 test("buildChatMarkdown 对 AI 回答应用规范化", () => {

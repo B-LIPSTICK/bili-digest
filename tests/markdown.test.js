@@ -21,6 +21,12 @@ test("renderMarkdown 懒编号重排并显式写序号", () => {
   assert.match(html, /<li value="3">丙<\/li>/);
 });
 
+test("renderMarkdown 列表项之间的正文不打断编号", () => {
+  const html = renderMarkdown("1. **甲**\n\n正文说明\n\n1. **乙**\n\n正文说明2");
+  assert.match(html, /<li value="1">/);
+  assert.match(html, /<li value="2">/);
+});
+
 test("renderMarkdown 渲染加粗、行内代码与链接", () => {
   const html = renderMarkdown(
     "这是**重点**和 `code`，参考 [链接](https://example.com/a)。",
