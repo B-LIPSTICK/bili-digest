@@ -27,6 +27,13 @@ test("renderMarkdown 列表项之间的正文不打断编号", () => {
   assert.match(html, /<li value="2">/);
 });
 
+test("renderMarkdown 兼容顿号和全角句点序号", () => {
+  const html = renderMarkdown("1、甲\n1、乙\n1．丙");
+  assert.match(html, /<li value="1">甲<\/li>/);
+  assert.match(html, /<li value="2">乙<\/li>/);
+  assert.match(html, /<li value="3">丙<\/li>/);
+});
+
 test("renderMarkdown 渲染加粗、行内代码与链接", () => {
   const html = renderMarkdown(
     "这是**重点**和 `code`，参考 [链接](https://example.com/a)。",
