@@ -10,8 +10,15 @@ test("renderMarkdown 渲染标题、列表与段落", () => {
   assert.match(html, /<ul>/);
   assert.match(html, /<li>第一点<\/li>/);
   assert.match(html, /<ol>/);
-  assert.match(html, /<li>第一步<\/li>/);
+  assert.match(html, /<li value="1">第一步<\/li>/);
   assert.match(html, /<p>正文段落。<\/p>/);
+});
+
+test("renderMarkdown 懒编号重排并显式写序号", () => {
+  const html = renderMarkdown("1. 甲\n\n1. 乙\n\n1. 丙");
+  assert.match(html, /<li value="1">甲<\/li>/);
+  assert.match(html, /<li value="2">乙<\/li>/);
+  assert.match(html, /<li value="3">丙<\/li>/);
 });
 
 test("renderMarkdown 渲染加粗、行内代码与链接", () => {

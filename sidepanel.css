@@ -1140,11 +1140,7 @@ html[data-theme="dark"] .chat-msg.user .chat-msg-text {
   bottom: 0;
   margin-top: 4px;
   padding: 10px 0 14px;
-  background: linear-gradient(
-    to bottom,
-    rgba(246, 240, 235, 0),
-    var(--paper) 28%
-  );
+  background: var(--surface);
 }
 
 .chat-composer textarea {
