@@ -14,6 +14,7 @@ import {
   buildNotesMarkdown,
 } from "./lib/export.js";
 import { normalizeProviderConfig, requestAiCompletionStream } from "./lib/ai.js";
+import { ensureHostPermission } from "./lib/host-permissions.js";
 import { renderMarkdown } from "./lib/markdown.js";
 
 const EMPTY_GLYPHS = {
@@ -1613,9 +1614,18 @@ function getCurrentModelValue() {
 }
 
 async function saveSettings() {
+  const baseUrl = baseUrlInput.value.trim();
+  const granted = await ensureHostPermission(baseUrl);
+  if (!granted) {
+    showToast(
+      "未获得该接口地址的访问权限，AI 功能将不可用（请在弹出的对话框中点「允许」）",
+      "error",
+    );
+    return;
+  }
   const settings = {
     aiApiKey: apiKeyInput.value.trim(),
-    aiBaseUrl: baseUrlInput.value.trim(),
+    aiBaseUrl: baseUrl,
     aiModel: getCurrentModelValue(),
     thinkingLevel: thinkingLevelSelect.value,
     targetLanguage: targetLanguageSelect.value,
@@ -1635,9 +1645,17 @@ async function testApiKey() {
   keyTestResultEl.textContent = "正在测试…";
   testKeyBtn.disabled = true;
   try {
+    const baseUrl = baseUrlInput.value.trim();
+    const granted = await ensureHostPermission(baseUrl);
+    if (!granted) {
+      keyTestResultEl.className = "hint error";
+      keyTestResultEl.textContent =
+        "未授权该接口地址，无法测试（请在弹出的对话框中点「允许」）";
+      return;
+    }
     const result = await send("testApiKey", {
       apiKey: apiKeyInput.value.trim(),
-      baseUrl: baseUrlInput.value.trim(),
+      baseUrl,
       model: getCurrentModelValue(),
     });
     keyTestResultEl.className = "hint ok";
@@ -1658,6 +1676,15 @@ async function fetchModelList() {
     modelListHint.textContent = !apiKey
       ? "请先填写 API Key"
       : "请先填写接口地址";
+    modelListHint.classList.remove("hidden");
+    return;
+  }
+
+  const granted = await ensureHostPermission(baseUrl);
+  if (!granted) {
+    modelListHint.className = "hint error";
+    modelListHint.textContent =
+      "未授权该接口地址，无法拉取模型（请在弹出的对话框中点「允许」）";
     modelListHint.classList.remove("hidden");
     return;
   }

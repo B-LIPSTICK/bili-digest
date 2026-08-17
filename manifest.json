@@ -8,15 +8,15 @@
   "host_permissions": [
     "https://www.bilibili.com/*",
     "https://api.bilibili.com/*",
-    "https://*.hdslb.com/*",
+    "https://*.hdslb.com/*"
+  ],
+  "optional_host_permissions": [
     "https://api.deepseek.com/*",
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
     "https://api.moonshot.cn/*",
     "https://open.bigmodel.cn/*",
-    "https://dashscope.aliyuncs.com/*",
-    "https://*/*",
-    "http://*/*"
+    "https://dashscope.aliyuncs.com/*"
   ],
   "action": {
     "default_title": "打开 Bili Digest",
