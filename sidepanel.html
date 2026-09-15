@@ -81,8 +81,9 @@
         </div>
         <div class="notes-toolbar">
           <div class="mode-switch notes-scope">
-            <button class="mode active" data-scope="current">本视频</button>
-            <button class="mode" data-scope="all">全部视频</button>
+            <button id="notesScopeCurrent" class="mode active" data-scope="current">本视频</button>
+            <button id="notesScopeSeries" class="mode hidden" data-scope="series">全部分集</button>
+            <button id="notesScopeAll" class="mode" data-scope="all">全部视频</button>
           </div>
           <button id="exportNotesBtn" class="ghost-btn" type="button" title="导出当前视图的笔记">导出笔记</button>
         </div>

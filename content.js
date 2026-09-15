@@ -88,6 +88,15 @@ function getVideoContext() {
     ) ||
     0;
 
+  const pageParam = Number(new URLSearchParams(location.search).get("p")) || 1;
+  let partTitle = "";
+  if (Array.isArray(videoData?.pages)) {
+    const targetPage = videoData.pages[pageParam - 1];
+    if (targetPage?.part) {
+      partTitle = String(targetPage.part).trim();
+    }
+  }
+
   const context = {
     bvid: getBvid(),
     cid: getCid(),
@@ -95,7 +104,8 @@ function getVideoContext() {
     title,
     author,
     authorMid,
-    page: Number(new URLSearchParams(location.search).get("p")) || 1,
+    page: pageParam,
+    partTitle,
     currentTime: video ? Math.floor(video.currentTime) : 0,
     paused: video ? video.paused : true,
   };
@@ -137,6 +147,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         url.searchParams.set("p", String(page));
       } else {
         url.searchParams.delete("p");
+      }
+      if (message.seconds != null && Number(message.seconds) >= 0) {
+        url.searchParams.set("t", String(Math.floor(Number(message.seconds))));
       }
       location.href = url.toString();
       sendResponse({ success: true });
@@ -421,6 +434,7 @@ async function captureCurrentNote() {
       cid: context.cid,
       aid: context.aid,
       page: context.page || 1,
+      partTitle: context.partTitle || "",
       seconds,
       videoTitle: context.title,
       author: context.author,

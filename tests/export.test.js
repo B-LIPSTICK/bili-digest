@@ -218,3 +218,46 @@ test("buildNotesMarkdown 空笔记给占位说明", () => {
   const markdown = buildNotesMarkdown({ video: {}, notes: [], exportedAt: FIXED_DATE });
   assert.match(markdown, /暂无笔记/);
 });
+
+test("buildNotesMarkdown 当前分集带分集标题与分P链接", () => {
+  const markdown = buildNotesMarkdown({
+    video: { bvid: "BV1xx", title: "课程系列", page: 2, partTitle: "环境搭建" },
+    notes: [
+      {
+        videoId: "BV1xx",
+        page: 2,
+        partTitle: "环境搭建",
+        timestamp: 45,
+        text: "Node 版本建议用 LTS",
+      },
+    ],
+    scope: "current",
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /^# 笔记 · 课程系列 · 环境搭建/);
+  assert.match(markdown, /https:\/\/www\.bilibili\.com\/video\/BV1xx\?p=2/);
+  assert.match(markdown, /\[00:45\]\([^)]+\) Node 版本建议用 LTS/);
+});
+
+test("buildNotesMarkdown 全部分集视图按分集分组输出", () => {
+  const markdown = buildNotesMarkdown({
+    video: { bvid: "BV1xx", title: "课程系列" },
+    notes: [
+      { videoId: "BV1xx", page: 2, partTitle: "进阶技巧", timestamp: 10, text: "技巧二" },
+      { videoId: "BV1xx", page: 1, partTitle: "绪论", timestamp: 5, text: "绪论要点" },
+      { videoId: "BV1xx", page: 2, partTitle: "进阶技巧", timestamp: 5, text: "技巧一" },
+    ],
+    scope: "series",
+    exportedAt: FIXED_DATE,
+  });
+  assert.match(markdown, /^# 笔记 · 课程系列 · 全部分集/);
+  assert.match(markdown, /## P1 绪论/);
+  assert.match(markdown, /## P2 进阶技巧/);
+  // 确认 P1 在 P2 之前，且 P2 内按时间戳升序
+  const p1Index = markdown.indexOf("## P1 绪论");
+  const p2Index = markdown.indexOf("## P2 进阶技巧");
+  const t1Index = markdown.indexOf("技巧一");
+  const t2Index = markdown.indexOf("技巧二");
+  assert.ok(p1Index < p2Index);
+  assert.ok(t1Index < t2Index);
+});

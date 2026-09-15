@@ -87,6 +87,9 @@ const polishNoteBtn = $("polishNoteBtn");
 const saveNoteBtn = $("saveNoteBtn");
 const notesStatusEl = $("notesStatus");
 const notesListEl = $("notesList");
+const notesScopeCurrent = $("notesScopeCurrent");
+const notesScopeSeries = $("notesScopeSeries");
+const notesScopeAll = $("notesScopeAll");
 const apiKeyInput = $("apiKeyInput");
 const toggleKeyBtn = $("toggleKeyBtn");
 const testKeyBtn = $("testKeyBtn");
@@ -313,6 +316,9 @@ async function detectVideo() {
       ensureAuthorMid();
       loadParts();
       await loadTranscript();
+      if (state.currentTab === "notes") {
+        refreshNotes();
+      }
     } else {
       state.video = context;
       updateHeader();
@@ -427,6 +433,39 @@ async function loadTranscript({ lan } = {}) {
   }
 }
 
+function getCurrentPartContext() {
+  const page = Number(state.video?.page) || 1;
+  let partTitle = "";
+  if (Array.isArray(state.pages)) {
+    const matched = state.pages.find((p) => Number(p.page) === page);
+    if (matched?.part) partTitle = String(matched.part).trim();
+  }
+  if (!partTitle && state.video?.partTitle) {
+    partTitle = String(state.video.partTitle).trim();
+  }
+  return { page, partTitle };
+}
+
+function updateNotesScopeUI() {
+  const isMultiPart = Array.isArray(state.pages) && state.pages.length > 1;
+  if (isMultiPart) {
+    if (notesScopeCurrent) notesScopeCurrent.textContent = "当前分集";
+    if (notesScopeSeries) notesScopeSeries.classList.remove("hidden");
+  } else {
+    if (notesScopeCurrent) notesScopeCurrent.textContent = "本视频";
+    if (notesScopeSeries) notesScopeSeries.classList.add("hidden");
+    if (state.notesScope === "series") {
+      state.notesScope = "current";
+    }
+  }
+  document.querySelectorAll(".notes-scope .mode").forEach((button) => {
+    button.classList.toggle("active", button.dataset.scope === state.notesScope);
+  });
+  if (noteComposerEl) {
+    noteComposerEl.classList.toggle("hidden", state.notesScope !== "current");
+  }
+}
+
 async function loadParts() {
   const bvid = state.video?.bvid;
   if (!bvid) return;
@@ -436,9 +475,11 @@ async function loadParts() {
     if (state.video?.bvid !== bvid) return;
     state.pages = pages;
     renderPartSelect();
+    updateNotesScopeUI();
   } catch {
     state.pages = [];
     renderPartSelect();
+    updateNotesScopeUI();
   }
 }
 
@@ -650,6 +691,11 @@ async function exportMarkdown({ includeOverview = false } = {}) {
     } catch {
       // 拿不到就用内存里的，仍可导出其余内容
     }
+    const currentPage = Number(state.video.page) || 1;
+    const currentPartNotes = (notes || []).filter(
+      (note) => (Number(note.page) || 1) === currentPage,
+    );
+    const { partTitle } = getCurrentPartContext();
 
     let description = "";
     try {
@@ -660,22 +706,23 @@ async function exportMarkdown({ includeOverview = false } = {}) {
     }
 
     const markdown = buildMarkdown({
-      video: state.video,
+      video: { ...state.video, partTitle },
       description,
       overview: includeOverview ? state.overview : null,
       includeOverview,
       segments: state.segments,
       translations: state.translations,
-      notes,
+      notes: currentPartNotes,
     });
     const rawName = (state.video.title || state.video.bvid || "bili-digest")
       .replace(/[\\/:*?"<>|]/g, "_")
       .slice(0, 60);
+    const partSuffix = partTitle ? `-${partTitle}` : (state.video.page > 1 ? `-P${state.video.page}` : "");
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${rawName}${includeOverview ? "-含概览" : ""}.md`;
+    link.download = `${rawName}${partSuffix}${includeOverview ? "-含概览" : ""}.md`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -927,18 +974,30 @@ async function exportOverview() {
 }
 
 async function exportNotes() {
-  const notes = [...state.notes];
+  const scope = state.notesScope;
+  let notes = [];
+  const currentPage = Number(state.video?.page) || 1;
+  if (scope === "current") {
+    notes = state.notes
+      .filter((note) => (Number(note.page) || 1) === currentPage)
+      .sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+  } else if (scope === "series") {
+    notes = [...state.notes].sort(
+      (a, b) =>
+        (Number(a.page) || 1) - (Number(b.page) || 1) ||
+        (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0),
+    );
+  } else {
+    notes = [...state.notes];
+  }
   if (notes.length === 0) {
     showToast("没有笔记可导出", "error");
     return;
   }
-  const scope = state.notesScope;
-  if (scope === "current") {
-    notes.sort((a, b) => a.timestamp - b.timestamp);
-  }
   try {
+    const { partTitle } = getCurrentPartContext();
     const markdown = buildNotesMarkdown({
-      video: state.video || {},
+      video: { ...(state.video || {}), partTitle },
       notes,
       scope,
     });
@@ -947,11 +1006,15 @@ async function exportNotes() {
         ? "bili-digest-全部笔记"
         : state.video?.title || state.video?.bvid || "bili-digest";
     const safeName = rawName.replace(/[\\/:*?"<>|]/g, "_").slice(0, 50);
+    const partSuffix =
+      scope === "current"
+        ? (partTitle ? `-${partTitle}` : (state.video?.page > 1 ? `-P${state.video.page}` : ""))
+        : (scope === "series" ? "-全部分集" : "");
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${safeName}-笔记.md`;
+    link.download = `${safeName}${partSuffix}-笔记.md`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -968,11 +1031,15 @@ async function saveQuoteAsNote(quote) {
     return;
   }
   try {
+    const { page, partTitle } = getCurrentPartContext();
     await send("saveNote", {
       videoId: state.video.bvid,
       timestamp: Number(quote.time) || 0,
       videoTitle: state.video.title,
+      partTitle,
       author: state.video.author,
+      page,
+      cid: state.video.cid || 0,
       text: quote.text,
     });
     showToast("金句已存为笔记");
@@ -1012,30 +1079,65 @@ async function refreshNotes() {
 
 function renderNotes() {
   notesListEl.replaceChildren();
-  if (state.notes.length === 0) {
+  const currentPage = Number(state.video?.page) || 1;
+  let list = [];
+  if (state.notesScope === "current") {
+    list = state.notes
+      .filter((note) => (Number(note.page) || 1) === currentPage)
+      .sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+  } else if (state.notesScope === "series") {
+    list = [...state.notes].sort(
+      (a, b) =>
+        (Number(a.page) || 1) - (Number(b.page) || 1) ||
+        (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0),
+    );
+  } else {
+    list = state.notes;
+  }
+
+  if (list.length === 0) {
+    let emptyHint = "还没有笔记";
+    if (state.notesScope === "all") {
+      emptyHint = "还没有任何视频的笔记";
+    } else if (state.notesScope === "series") {
+      emptyHint = "当前系列暂无笔记";
+    } else if (Array.isArray(state.pages) && state.pages.length > 1) {
+      emptyHint = `第 P${currentPage} 集暂无笔记`;
+    }
     renderEmpty(
       notesListEl,
       EMPTY_GLYPHS.notes,
-      state.notesScope === "all"
-        ? ["还没有任何视频的笔记", "看视频时点「标记」或按 N，把当前句原文存为标记"]
-        : ["还没有笔记", "看视频时点「标记」或按 N，把当前句原文存为标记"],
+      [emptyHint, "看视频时点「标记」或按 N，把当前句原文存为标记"],
       { glyphHtml: true },
     );
     return;
   }
 
-  const list =
-    state.notesScope === "all"
-      ? state.notes
-      : [...state.notes].sort((a, b) => a.timestamp - b.timestamp);
   const fragment = document.createDocumentFragment();
   for (const note of list) {
     const card = document.createElement("div");
     card.className = "note-card";
+    const notePage = Number(note.page) || 1;
+
+    let partBadgeHtml = "";
+    if (state.notesScope === "series") {
+      const partText = note.partTitle ? `P${notePage} ${note.partTitle}` : `P${notePage}`;
+      partBadgeHtml = `<button class="note-part-badge clickable" type="button" title="跳转此分集">${escapeHtml(partText)}</button>`;
+    }
+
+    let videoTitleHtml = "";
+    if (state.notesScope === "all") {
+      const partTag = note.partTitle
+        ? ` · P${notePage} ${note.partTitle}`
+        : (notePage > 1 ? ` · P${notePage}` : "");
+      videoTitleHtml = `<button class="note-video-title" type="button">${escapeHtml((note.videoTitle || note.videoId || "") + partTag)}</button>`;
+    }
+
     card.innerHTML = `
       <div class="note-head">
         <button class="note-time" data-seconds="${Number(note.timestamp) || 0}">${secondsToTimestamp(note.timestamp)}</button>
-        ${state.notesScope === "all" ? `<button class="note-video-title" type="button">${escapeHtml(note.videoTitle || note.videoId || "")}</button>` : ""}
+        ${partBadgeHtml}
+        ${videoTitleHtml}
         <button class="note-delete" title="删除笔记">✕</button>
       </div>
       <p class="note-text">${escapeHtml(note.text)}</p>
@@ -1046,6 +1148,9 @@ function renderNotes() {
       </div>
     `;
     card.querySelector(".note-time").addEventListener("click", () => playNote(note));
+    card
+      .querySelector(".note-part-badge")
+      ?.addEventListener("click", () => playNote(note));
     card
       .querySelector(".note-video-title")
       ?.addEventListener("click", () => playNote(note));
@@ -1068,7 +1173,7 @@ function renderNotes() {
         copyWithFeedback(
           card.querySelector(".note-copy-link"),
           note.url ||
-            `https://www.bilibili.com/video/${note.videoId}?t=${Number(note.timestamp) || 0}`,
+            `https://www.bilibili.com/video/${note.videoId}${notePage > 1 ? `?p=${notePage}&t=${Number(note.timestamp) || 0}` : `?t=${Number(note.timestamp) || 0}`}`,
         ),
       );
     card.querySelector(".note-play").addEventListener("click", () => playNote(note));
@@ -1079,16 +1184,24 @@ function renderNotes() {
 
 async function playNote(note) {
   const seconds = Number(note.timestamp) || 0;
-  if (
-    state.video?.bvid === note.videoId &&
-    Number(note.page || 1) === Number(state.video?.page || 1)
-  ) {
-    seekTo(seconds);
-    return;
+  const notePage = Number(note.page) || 1;
+  const currentPage = Number(state.video?.page) || 1;
+  if (state.video?.bvid === note.videoId) {
+    if (notePage === currentPage) {
+      seekTo(seconds);
+      return;
+    }
+    try {
+      await sendToTab("switchPart", { page: notePage, seconds });
+      return;
+    } catch {
+      // 当前标签页切 P 失败时回退新建标签页
+    }
   }
   try {
+    const pageQuery = notePage > 1 ? `?p=${notePage}&t=${seconds}` : `?t=${seconds}`;
     await chrome.tabs.create({
-      url: note.url || `https://www.bilibili.com/video/${note.videoId}?t=${seconds}`,
+      url: note.url || `https://www.bilibili.com/video/${note.videoId}${pageQuery}`,
     });
   } catch (error) {
     showToast(error.message, "error");
@@ -1109,11 +1222,11 @@ async function copyWithFeedback(button, text) {
 }
 
 function switchNotesScope(scope) {
-  state.notesScope = scope === "all" ? "all" : "current";
-  document.querySelectorAll(".notes-scope .mode").forEach((button) => {
-    button.classList.toggle("active", button.dataset.scope === state.notesScope);
-  });
-  noteComposerEl.classList.toggle("hidden", state.notesScope !== "current");
+  if (scope === "series" && (!state.pages || state.pages.length <= 1)) {
+    scope = "current";
+  }
+  state.notesScope = scope;
+  updateNotesScopeUI();
   refreshNotes();
 }
 
@@ -1142,12 +1255,15 @@ async function saveCurrentNote() {
   try {
     // 保存前重新取一次播放位置，保证时间戳是点击保存那一刻的
     await captureCurrentSeconds();
+    const { page, partTitle } = getCurrentPartContext();
     await send("saveNote", {
       videoId: state.video.bvid,
       timestamp: state.noteSeconds,
       videoTitle: state.video.title,
+      partTitle,
       author: state.video.author,
-      page: state.video.page || 1,
+      page,
+      cid: state.video.cid || 0,
       text,
     });
     noteTextEl.value = "";

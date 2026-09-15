@@ -569,16 +569,21 @@ async function handleSaveNote({
   author,
   text,
   page = 0,
+  partTitle = "",
+  cid = 0,
 }) {
   if (!videoId) throw new Error("缺少视频 ID");
   const notes = await store.get(notesKey(videoId), []);
   const seconds = Math.max(0, Number(timestamp) || 0);
-  const pageQuery = Number(page) > 1 ? `?p=${Number(page)}&t=${seconds}` : `?t=${seconds}`;
+  const notePage = Math.max(1, Number(page) || 1);
+  const pageQuery = notePage > 1 ? `?p=${notePage}&t=${seconds}` : `?t=${seconds}`;
   const note = {
     id: crypto.randomUUID(),
     videoId,
     timestamp: seconds,
-    page: Number(page) || 1,
+    page: notePage,
+    partTitle: String(partTitle ?? "").trim(),
+    cid: Number(cid) || 0,
     videoTitle: String(videoTitle ?? ""),
     author: String(author ?? ""),
     text: String(text ?? "").trim(),
@@ -595,12 +600,25 @@ async function handleCaptureNote({
   cid,
   aid,
   page,
+  partTitle = "",
   seconds,
   videoTitle,
   author,
 }) {
   if (!bvid) throw new Error("未检测到视频");
-  ({ cid, aid } = await resolvePartIdentity(bvid, cid, aid, page));
+  let resolvedPartTitle = String(partTitle ?? "").trim();
+  const identity = await resolvePartIdentity(bvid, cid, aid, page);
+  cid = identity.cid;
+  aid = identity.aid;
+  if (!resolvedPartTitle && Number(page) > 1) {
+    try {
+      const info = await handleGetVideoInfo(bvid, Number(page));
+      const target = info.pages?.[Number(page) - 1];
+      if (target?.part) resolvedPartTitle = String(target.part).trim();
+    } catch {
+      // 忽略兜底失败
+    }
+  }
   const time = Math.max(0, Number(seconds) || 0);
 
   const activeLan = await store.get(activeTrackKey(bvid, cid), "");
@@ -629,6 +647,8 @@ async function handleCaptureNote({
     videoTitle,
     author,
     page,
+    partTitle: resolvedPartTitle,
+    cid,
     text: text.slice(0, 3000),
   });
   // 通知侧边栏刷新（侧边栏未打开时忽略失败）
@@ -636,9 +656,14 @@ async function handleCaptureNote({
   return { note };
 }
 
-async function handleGetNotes(videoId) {
+async function handleGetNotes(videoId, page = null) {
   if (!videoId) return [];
-  return store.get(notesKey(videoId), []);
+  const notes = await store.get(notesKey(videoId), []);
+  if (page != null && page !== "all") {
+    const pageNum = Number(page) || 1;
+    return notes.filter((n) => (Number(n.page) || 1) === pageNum);
+  }
+  return notes;
 }
 
 async function handleGetAllNotes() {
@@ -796,7 +821,7 @@ async function route(message, sender) {
     case "captureNote":
       return await handleCaptureNote(message);
     case "getNotes":
-      return { notes: await handleGetNotes(message.videoId) };
+      return { notes: await handleGetNotes(message.videoId, message.page) };
     case "getAllNotes":
       return await handleGetAllNotes();
     case "deleteNote":
